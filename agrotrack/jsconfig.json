@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": { "@/*": ["src/*"] },
+    "checkJs": true,
+    "jsx": "preserve",
+    "target": "ESNext",        
+    "module": "ESNext",        
+    "moduleResolution": "bundler",
+    "lib": ["ESNext", "DOM"],  
+    "types": ["vite/client"]   
+  },
+  "include": ["src/**/*", "env.d.ts"]
+}
