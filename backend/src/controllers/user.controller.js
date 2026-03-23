@@ -26,8 +26,7 @@ export async function listerUsers(req, res, next) {
     const total = await User.countDocuments(filtre);
 
     const users = await User.find(filtre)
-      .populate("fermesAssignees", "name")
-      .select("-__v -motDePasseHash")
+      .select("-__v -passwordHash")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(Number(limit))
@@ -54,7 +53,6 @@ export async function obtenirUser(req, res, next) {
     }
 
     const user = await User.findById(id)
-      .populate("fermesAssignees", "name")
       .select("-__v -passwordHash")
       .lean();
 
@@ -99,7 +97,6 @@ export async function modifierUser(req, res, next) {
       { $set: miseAJour },
       { new: true, runValidators: true },
     )
-      .populate("fermesAssignees", "name")
       .select("-__v -passwordHash");
 
     if (!user) {

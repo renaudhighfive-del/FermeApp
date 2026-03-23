@@ -2,7 +2,7 @@ import bcrypt   from 'bcryptjs'
 import mongoose from 'mongoose'
 import { User } from '../models/User.js'
 
-export async function creerOneUser({ name, email, password, role, fermesAssignees }) {
+export async function creerOneUser({ name, email, password, role, campaignsAssignees }) {
 
   // ── Validations ──────────────────────────────────────────────
   if (!name || typeof name !== 'string' || name.trim().length < 2) {
@@ -39,21 +39,21 @@ export async function creerOneUser({ name, email, password, role, fermesAssignee
     throw err
   }
 
-  // ── Validation fermesAssignees si gérant ──────────────────────
-  let fermes = []
+  // ── Validation campaignsAssignees si gérant ──────────────────────
+  let campaigns = []
   if (role === 'gerant') {
-    if (!Array.isArray(fermesAssignees) || fermesAssignees.length === 0) {
-      const err = new Error('Un gérant doit avoir au moins une ferme assignée')
+    if (!Array.isArray(campaignsAssignees) || campaignsAssignees.length === 0) {
+      const err = new Error('Un gérant doit avoir au moins une campagne assignée')
       err.statusCode = 400
       throw err
     }
-    const tousValides = fermesAssignees.every(id => mongoose.Types.ObjectId.isValid(id))
+    const tousValides = campaignsAssignees.every(id => mongoose.Types.ObjectId.isValid(id))
     if (!tousValides) {
-      const err = new Error('Un ou plusieurs IDs de ferme sont invalides')
+      const err = new Error('Un ou plusieurs IDs de campagne sont invalides')
       err.statusCode = 400
       throw err
     }
-    fermes = fermesAssignees
+    campaigns = campaignsAssignees
   }
 
   // ── Création ──────────────────────────────────────────────────
@@ -64,7 +64,7 @@ export async function creerOneUser({ name, email, password, role, fermesAssignee
     email:           normalizedEmail,
     passwordHash,
     role,
-    fermesAssignees: fermes,
+    campaignsAssignees: campaigns,
   })
 
   // ── Retourner sans le hash ────────────────────────────────────

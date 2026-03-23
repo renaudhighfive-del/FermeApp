@@ -27,11 +27,11 @@ const userSchema = new Schema(
       enum: ['admin', 'gerant', 'agent'],
       default: 'agent',
     },
-    // Pour le gérant : quelles fermes il gère
-    fermesAssignees: [
+    // Pour le gérant : quelles campagnes il gère
+    campaignsAssignees: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Ferme',
+        ref: 'Campaign',
       },
     ],
     actif: {

@@ -1,135 +1,223 @@
 <template>
-  <div>
-    <div class="page-header">
-      <div class="page-header-row">
-        <div>
-          <h1 class="page-title">Utilisateurs</h1>
-          <p class="page-subtitle">Gérez les accès à AgroTrack</p>
-        </div>
-        <div class="page-actions">
-          <button class="btn btn-primary" @click="showInviteModal=true">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Inviter un utilisateur
-          </button>
-        </div>
+  <div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+      <div>
+        <h1 class="text-3xl font-bold text-slate-800">Utilisateurs</h1>
+        <p class="text-slate-600">Gérez les utilisateurs et leurs rôles</p>
       </div>
+      <button
+        @click="showNewModal = true"
+        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+      >
+        <span>+</span> Inviter Utilisateur
+      </button>
     </div>
 
-    <div class="card mb-gap">
-      <div class="flex items-center justify-between mb-16">
-        <div class="search-wrap">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input class="search-input" type="text" placeholder="Rechercher un utilisateur..." v-model="search"/>
-        </div>
-        <div class="filters-bar" style="margin-bottom:0">
-          <div class="filter-group">
-            <button class="filter-btn" :class="{active:roleFilter==='tous'}" @click="roleFilter='tous'">Tous</button>
-            <button class="filter-btn" :class="{active:roleFilter==='admin'}" @click="roleFilter='admin'">Admin</button>
-            <button class="filter-btn" :class="{active:roleFilter==='gerant'}" @click="roleFilter='gerant'">Gérant</button>
-            <button class="filter-btn" :class="{active:roleFilter==='agent'}" @click="roleFilter='agent'">Agent</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="table-wrap">
-        <table class="table">
-          <thead>
+    <!-- Users Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-slate-100 border-b border-slate-200">
             <tr>
-              <th>Utilisateur</th><th>Email</th><th>Rôle</th>
-              <th>Statut</th><th>Dernière connexion</th><th>Actions</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Nom</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Email</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Rôle</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Statut</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Actions</th>
             </tr>
           </thead>
-          <tbody>
-            <tr v-for="u in filteredUsers" :key="u.id">
-              <td>
-                <div class="user-cell">
-                  <div class="avatar" :class="u.avClass">{{ u.initials }}</div>
-                  <div>
-                    <div class="user-cell-name">{{ u.name }}</div>
-                  </div>
-                </div>
+          <tbody class="divide-y divide-slate-200">
+            <tr v-for="user in users" :key="user._id" class="hover:bg-slate-50">
+              <td class="px-6 py-4 text-sm font-medium text-slate-900">{{ user.name }}</td>
+              <td class="px-6 py-4 text-sm text-slate-600">{{ user.email }}</td>
+              <td class="px-6 py-4 text-sm">
+                <span
+                  :class="{
+                    'bg-blue-100 text-blue-800': user.role === 'admin',
+                    'bg-purple-100 text-purple-800': user.role === 'gerant',
+                    'bg-green-100 text-green-800': user.role === 'agent',
+                  }"
+                  class="px-3 py-1 rounded-full text-xs font-medium"
+                >
+                  {{ user.role }}
+                </span>
               </td>
-              <td class="text-soft text-sm">{{ u.email }}</td>
-              <td><span class="badge" :class="u.roleClass">{{ u.roleLabel }}</span></td>
-              <td><span class="badge" :class="u.statusClass">{{ u.status }}</span></td>
-              <td class="text-soft text-sm">{{ u.lastLogin }}</td>
-              <td>
-                <div class="table-actions">
-                  <button class="btn btn-outline btn-sm" @click="editUser(u)">Modifier</button>
-                  <button class="btn btn-sm" style="color:var(--soft);background:transparent;border:1px solid var(--border)">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-                  </button>
-                </div>
+              <td class="px-6 py-4 text-sm">
+                <span
+                  :class="{
+                    'bg-green-100 text-green-800': user.actif,
+                    'bg-red-100 text-red-800': !user.actif,
+                  }"
+                  class="px-3 py-1 rounded-full text-xs font-medium"
+                >
+                  {{ user.actif ? 'Actif' : 'Inactif' }}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-sm space-x-2">
+                <button class="text-blue-600 hover:text-blue-800">Éditer</button>
+                <button @click="deactivateUser(user._id)" class="text-red-600 hover:text-red-800">
+                  {{ user.actif ? 'Désactiver' : 'Activer' }}
+                </button>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-
-      <div class="pagination">
-        <button class="page-btn active">1</button>
-        <button class="page-btn">2</button>
-        <button class="page-btn">›</button>
-      </div>
     </div>
 
-    <!-- Modal Invitation -->
-    <div class="modal-overlay" :class="{open:showInviteModal}" @click.self="showInviteModal=false">
-      <div class="modal">
-        <div class="modal-header">
-          <div class="modal-title">
-            <svg width="20" height="20" fill="none" stroke="var(--primary)" stroke-width="1.5" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-            Inviter un utilisateur
+    <!-- Modal Inviter -->
+    <div v-if="showNewModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-6 max-w-md w-full">
+        <h2 class="text-xl font-bold mb-4">Inviter Utilisateur</h2>
+        <form @submit.prevent="submitUser" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Nom</label>
+            <input
+              v-model="newUser.name"
+              type="text"
+              class="w-full px-4 py-2 border border-slate-300 rounded-lg"
+              required
+            />
           </div>
-          <button class="modal-close" @click="showInviteModal=false">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Nom complet</label>
-          <input class="form-input" type="text" placeholder="Jean Dupont"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Adresse email</label>
-          <input class="form-input" type="email" placeholder="jean@agrotrack.com"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Rôle</label>
-          <select class="form-select">
-            <option>Admin</option>
-            <option>Gérant</option>
-            <option selected>Agent</option>
-          </select>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-outline" @click="showInviteModal=false">Annuler</button>
-          <button class="btn btn-primary">Envoyer l'invitation</button>
-        </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+            <input
+              v-model="newUser.email"
+              type="email"
+              class="w-full px-4 py-2 border border-slate-300 rounded-lg"
+              required
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Mot de passe</label>
+            <input
+              v-model="newUser.password"
+              type="password"
+              class="w-full px-4 py-2 border border-slate-300 rounded-lg"
+              required
+              minlength="6"
+              placeholder="Minimum 6 caractères"
+            />
+          </div>
+          <div v-if="newUser.role === 'gerant'">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Campagne Assignée</label>
+            <select
+              v-model="newUser.campaignsAssignees[0]"
+              class="w-full px-4 py-2 border border-slate-300 rounded-lg"
+              required
+            >
+              <option value="">Sélectionner une campagne</option>
+              <option
+                v-for="campaign in campaigns.filter(c => c.status !== 'Terminée')"
+                :key="campaign._id"
+                :value="campaign._id"
+              >
+                {{ campaign.name }} ({{ campaign.animalType }})
+              </option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Rôle</label>
+            <select v-model="newUser.role" class="w-full px-4 py-2 border border-slate-300 rounded-lg">
+              <option value="admin">Admin</option>
+              <option value="gerant">Gérant</option>
+              <option value="agent">Agent</option>
+            </select>
+          </div>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              @click="showNewModal = false"
+              class="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg"
+            >
+              Annuler
+            </button>
+            <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg">
+              Inviter
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-const showInviteModal = ref(false)
-const search = ref('')
-const roleFilter = ref('tous')
+import { ref, onMounted } from 'vue'
+import { userService } from '@/services/api'
+import { useAdminStore } from '@/stores/admin'
 
-const users = [
-  { id:1, name:'Jean Dupont',  initials:'JD', email:'jean@agrotrack.com',  roleLabel:'Admin',  roleClass:'badge-admin',  status:'Actif',   statusClass:'badge-actif',   avClass:'av-purple', lastLogin:'Auj. 09:30',    role:'admin'  },
-  { id:2, name:'Marie Koné',   initials:'MK', email:'marie@agrotrack.com', roleLabel:'Gérant', roleClass:'badge-gerant', status:'Actif',   statusClass:'badge-actif',   avClass:'av-blue',   lastLogin:'Auj. 08:15',    role:'gerant' },
-  { id:3, name:'Paul Ahoua',   initials:'PA', email:'paul@agrotrack.com',  roleLabel:'Agent',  roleClass:'badge-agent',  status:'Actif',   statusClass:'badge-actif',   avClass:'av-green',  lastLogin:'Hier 16:40',    role:'agent'  },
-  { id:4, name:'Awa Traoré',   initials:'AT', email:'awa@agrotrack.com',   roleLabel:'Agent',  roleClass:'badge-agent',  status:'Inactif', statusClass:'badge-inactif', avClass:'av-gray',   lastLogin:'Il y a 5 jours',role:'agent'  },
-]
-
-const filteredUsers = computed(() => {
-  return users.filter(u => {
-    const matchSearch = u.name.toLowerCase().includes(search.value.toLowerCase()) || u.email.toLowerCase().includes(search.value.toLowerCase())
-    const matchRole   = roleFilter.value === 'tous' || u.role === roleFilter.value
-    return matchSearch && matchRole
-  })
+const admin = useAdminStore()
+const users = ref([])
+const campaigns = ref([])
+const showNewModal = ref(false)
+const newUser = ref({
+  name: '',
+  email: '',
+  password: '',
+  role: 'agent',
+  campaignsAssignees: []
 })
 
-function editUser(u) { console.log('edit', u) }
+const fetchUsers = async () => {
+  try {
+    const response = await userService.getAll()
+    users.value = response.data.users
+  } catch (error) {
+    console.error('Error:', error)
+  }
+}
+
+const submitUser = async () => {
+  try {
+    console.log('Données utilisateur envoyées:', newUser.value)
+    
+    // Préparer les données pour l'envoi
+    const userData = { ...newUser.value }
+    
+    // Si le rôle est gérant, s'assurer qu'une campagne est bien sélectionnée
+    if (userData.role === 'gerant') {
+      if (!userData.campaignsAssignees[0]) {
+        throw new Error('Un gérant doit avoir au moins une campagne assignée')
+      }
+      // Filtrer les valeurs vides et s'assurer que c'est un tableau
+      userData.campaignsAssignees = userData.campaignsAssignees.filter(id => id)
+    } else {
+      // Pour les autres rôles, vider les campagnes assignées
+      userData.campaignsAssignees = []
+    }
+    
+    await userService.create(userData)
+    showNewModal.value = false
+    newUser.value = { name: '', email: '', password: '', role: 'agent', campaignsAssignees: [] }
+    await fetchUsers()
+  } catch (error) {
+    console.error('Error:', error)
+    alert('Erreur: ' + (error.message || 'Impossible de créer l\'utilisateur'))
+  }
+}
+
+const deactivateUser = async (userId) => {
+  try {
+    await userService.deactivateUser(userId)
+    await fetchUsers()
+  } catch (error) {
+    console.error('Error:', error)
+  }
+}
+
+const fetchCampaigns = async () => {
+  try {
+    const response = await admin.fetchCampaigns()
+    campaigns.value = admin.campaigns
+  } catch (error) {
+    console.error('Error fetching campaigns:', error)
+  }
+}
+
+onMounted(() => {
+  fetchUsers()
+  fetchCampaigns()
+})
 </script>
