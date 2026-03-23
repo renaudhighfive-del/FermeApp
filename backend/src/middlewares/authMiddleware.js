@@ -1,7 +1,7 @@
 // src/middlewares/authMiddleware.js
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET ;
+const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_code';
 
 
 export function requireAuth(req, res, next) {
@@ -10,6 +10,9 @@ export function requireAuth(req, res, next) {
     return res.status(401).json({ error: { message: "Missing Authorization header" } });
   }
   const [type, token] = header.split(" ");
+
+  console.log(JWT_SECRET);
+
   if (type !== "Bearer" || !token) {
     return res.status(401).json({ error: { message: "Invalid Authorization format" } });
   }
