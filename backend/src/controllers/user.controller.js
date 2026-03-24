@@ -220,3 +220,40 @@ export async function toggleUserStatus(req, res, next) {
     return next(err)
   }
 }
+
+// ── Supprimer un user (admin seulement) ───────────────────────────
+export async function supprimerUser(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "ID invalide" });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur introuvable" });
+    }
+
+    // 1. Nettoyer les relations dans les fermes et campagnes
+    try {
+      await mongoose.model('Farm').updateMany(
+        { _id: { $in: user.farms } },
+        { $pull: { managers: id, agents: id } }
+      );
+      await mongoose.model('Campaign').updateMany(
+        { _id: { $in: user.campaignsAssignees } },
+        { $pull: { managers: id, agents: id } }
+      );
+    } catch (cleanErr) {
+      console.error("Erreur lors du nettoyage des relations (delete):", cleanErr);
+    }
+
+    // 2. Supprimer l'utilisateur
+    await User.findByIdAndDelete(id);
+
+    res.json({ message: "Utilisateur supprimé avec succès" });
+  } catch (err) {
+    return next(err)
+  }
+}
