@@ -1,11 +1,15 @@
 // src/middlewares/authMiddleware.js
 import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_code';
+dotenv.config();
+
+const JWT_SECRET = process.env.JWT_SECRET;
 
 
 export function requireAuth(req, res, next) {
   const header = req.headers.authorization;
+  
   if (!header) {
     return res.status(401).json({ error: { message: "Missing Authorization header" } });
   }
@@ -25,7 +29,6 @@ export function requireAuth(req, res, next) {
     };
     return next();
   } catch (err) {
-    // jsonwebtoken lève : TokenExpiredError, JsonWebTokenError, NotBeforeError
     return res.status(401).json({ error: { message: "Invalid or expired token" } });
   }
 }

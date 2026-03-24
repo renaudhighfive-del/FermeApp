@@ -6,10 +6,9 @@
       <SidebarItem icon="flag"     label="Campagnes"       to="/admin/campaigns"/>
       <SidebarItem icon="animal"   label="Animaux"         to="/admin/animals"/>
       <SidebarItem icon="health"   label="Santé & Alertes" to="/admin/health"/>
-      <SidebarItem icon="food"     label="Alimentation"    to="/admin/food"/>
+      <SidebarItem icon="box"      label="Alimentation"    to="/admin/stock"/>
       <SidebarItem icon="chart"    label="Finance"         to="/admin/finance"/>
       <SidebarItem icon="sales"    label="Ventes"          to="/admin/sales"/>
-      <SidebarItem icon="box"      label="Stock"           to="/admin/stock"/>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-section-label">Administration</div>
