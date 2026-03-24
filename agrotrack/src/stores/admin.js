@@ -103,6 +103,53 @@ export const useAdminStore = defineStore("admin", () => {
     }
   };
 
+  // Farms
+  const fetchFarms = async (filter = {}) => {
+    loading.value = true;
+    try {
+      const response = await farmService.getAll(filter);
+      farms.value = response.data.farms;
+      return response.data;
+    } catch (err) {
+      error.value = err.message;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const createFarm = async (data) => {
+    try {
+      const response = await farmService.create(data);
+      farms.value.push(response.data);
+      return response.data;
+    } catch (err) {
+      error.value = err.message;
+      throw err;
+    }
+  };
+
+  const updateFarm = async (id, data) => {
+    try {
+      const response = await farmService.update(id, data);
+      const index = farms.value.findIndex((f) => f._id === id);
+      if (index !== -1) farms.value[index] = response.data;
+      return response.data;
+    } catch (err) {
+      error.value = err.message;
+      throw err;
+    }
+  };
+
+  const deleteFarm = async (id) => {
+    try {
+      await farmService.delete(id);
+      farms.value = farms.value.filter((f) => f._id !== id);
+    } catch (err) {
+      error.value = err.message;
+      throw err;
+    }
+  };
+
   // Animals
   const fetchAnimals = async (filter = {}) => {
     loading.value = true;
@@ -316,6 +363,10 @@ export const useAdminStore = defineStore("admin", () => {
     createCampaign,
     updateCampaign,
     deleteCampaign,
+    fetchFarms,
+    createFarm,
+    updateFarm,
+    deleteFarm,
     fetchAnimals,
     addAnimal,
     updateAnimal,

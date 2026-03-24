@@ -27,6 +27,18 @@ const campaignSchema = new mongoose.Schema(
     fcr: { type: Number, default: 0 }, // Feed Conversion Ratio
     budget: { type: Number, required: true }, // FCFA
     spent: { type: Number, default: 0 }, // FCFA
+    managers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    agents: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
     notes: String,
     predictions: {
       expectedMortalityRate: Number,

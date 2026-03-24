@@ -214,8 +214,10 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAdminStore } from '@/stores/admin'
+import { useUiStore } from '@/stores/ui'
 
 const admin = useAdminStore()
+const ui = useUiStore()
 const showDetailsModal = ref(false)
 const selectedAlert = ref(null)
 
@@ -245,8 +247,15 @@ const closeDetailsModal = () => {
   selectedAlert.value = null
 }
 
-const confirmResolve = (alertId) => {
-  if (confirm('Êtes-vous sûr de vouloir résoudre cette alerte?')) {
+const confirmResolve = async (alertId) => {
+  const confirm = await ui.confirm({
+    title: 'Résoudre l\'alerte',
+    message: 'Confirmez-vous que cette alerte est résolue ?',
+    confirmText: 'Confirmer',
+    type: 'info'
+  })
+  
+  if (confirm) {
     resolveAlert(alertId)
   }
 }
@@ -254,21 +263,30 @@ const confirmResolve = (alertId) => {
 const resolveAlert = async (alertId) => {
   try {
     await admin.resolveAlert(alertId)
+    ui.success('Alerte marquée comme résolue')
   } catch (error) {
     console.error('Erreur:', error)
-    alert('Erreur lors de la résolution de l\'alerte')
+    ui.error('Erreur lors de la résolution de l\'alerte')
   }
 }
 
 const resolveAllAlerts = async () => {
-  if (confirm(`Êtes-vous sûr de vouloir résoudre les ${urgentAlerts.value.length} alerte(s) urgente(s)?`)) {
+  const confirm = await ui.confirm({
+    title: 'Tout résoudre',
+    message: `Êtes-vous sûr de vouloir résoudre les ${urgentAlerts.value.length} alerte(s) urgente(s)?`,
+    confirmText: 'Tout résoudre',
+    type: 'danger'
+  })
+
+  if (confirm) {
     try {
       for (const alert of urgentAlerts.value) {
         await admin.resolveAlert(alert._id)
       }
+      ui.success('Toutes les alertes ont été résolues')
     } catch (error) {
       console.error('Erreur:', error)
-      alert('Erreur lors de la résolution des alertes')
+      ui.error('Erreur lors de la résolution des alertes')
     }
   }
 }

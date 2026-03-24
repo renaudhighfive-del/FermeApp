@@ -27,7 +27,14 @@ const userSchema = new Schema(
       enum: ['admin', 'gerant', 'agent'],
       default: 'agent',
     },
-    // Pour le gérant : quelles campagnes il gère
+    // Fermes assignées (pour gérants et agents)
+    farms: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Farm',
+      },
+    ],
+    // Campagnes assignées (pour gérants et agents)
     campaignsAssignees: [
       {
         type: mongoose.Schema.Types.ObjectId,

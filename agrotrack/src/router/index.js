@@ -15,6 +15,7 @@ const AdminStock     = () => import('@/views/admin/A5_Stock.vue')
 const AdminFinance   = () => import('@/views/admin/A6_Finance.vue')
 const AdminAnimals   = () => import('@/views/admin/A7_Animals.vue')
 const AdminHealth    = () => import('@/views/admin/A8_Health.vue')
+const AdminFarms     = () => import('@/views/admin/A9_Farms.vue')
 const AdminSales     = () => import('@/views/admin/A9_Sales.vue')
 const AdminSettings  = () => import('@/views/admin/A10_Settings.vue')
 
@@ -56,6 +57,7 @@ const routes = [
       { path: 'finance',   component: AdminFinance   },
       { path: 'animals',   component: AdminAnimals   },
       { path: 'health',    component: AdminHealth    },
+      { path: 'farms',     component: AdminFarms     },
       { path: 'sales',     component: AdminSales     },
       { path: 'settings',  component: AdminSettings  },
     ],

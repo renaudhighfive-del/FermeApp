@@ -155,29 +155,20 @@
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td class="fw-600">Campagne Mars 2026</td>
-                  <td><span class="badge badge-vol">Volaille</span></td>
-                  <td><span class="badge badge-encours">En cours</span></td>
-                  <td>500/480</td>
-                  <td>850 000 FCFA</td>
-                  <td><button class="btn btn-outline btn-sm"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></td>
+                <tr v-for="campaign in campaigns" :key="campaign._id">
+                  <td class="fw-600">{{ campaign.name }}</td>
+                  <td><span class="badge" :class="'badge-' + (campaign.animalType === 'Volaille' ? 'vol' : campaign.animalType === 'Bétail' ? 'bet' : 'pis')">{{ campaign.animalType }}</span></td>
+                  <td><span class="badge" :class="campaign.status === 'En cours' ? 'badge-encours' : campaign.status === 'Terminée' ? 'badge-terminee' : 'badge-prep'">{{ campaign.status }}</span></td>
+                  <td>{{ campaign.currentAnimalCount }}/{{ campaign.initialAnimalCount }}</td>
+                  <td>{{ campaign.budget.toLocaleString() }} FCFA</td>
+                  <td>
+                    <RouterLink :to="'/admin/campaigns'" class="btn btn-outline btn-sm">
+                      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </RouterLink>
+                  </td>
                 </tr>
-                <tr>
-                  <td class="fw-600">Lot Bœufs Fév</td>
-                  <td><span class="badge badge-bet">Bétail</span></td>
-                  <td><span class="badge badge-terminee">Terminée</span></td>
-                  <td>45/43</td>
-                  <td>2 400 000 FCFA</td>
-                  <td><button class="btn btn-outline btn-sm"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></td>
-                </tr>
-                <tr>
-                  <td class="fw-600">Bassin Tilapia</td>
-                  <td><span class="badge badge-pis">Pisciculture</span></td>
-                  <td><span class="badge badge-prep">En préparation</span></td>
-                  <td>0/1000</td>
-                  <td>320 000 FCFA</td>
-                  <td><button class="btn btn-outline btn-sm"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></td>
+                <tr v-if="campaigns.length === 0">
+                  <td colspan="6" class="text-center py-20 text-soft">Aucune campagne récente</td>
                 </tr>
               </tbody>
             </table>
@@ -226,10 +217,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore }  from '@/stores/auth.js'
+import { useUiStore }    from '@/stores/ui.js'
 import ModalNewCampaign  from '@/components/common/ModalNewCampaign.vue'
 import api from '../../services/api.js'
 
 const auth      = useAuthStore()
+const ui        = useUiStore()
 const showModal = ref(false)
 
 // Dashboard stats
@@ -252,13 +245,19 @@ const dateAujourdhui = computed(() => {
   })
 })
 
+// Table
+const campaigns = ref([])
+
 // Récupérer les stats du dashboard
 const fetchDashboardStats = async () => {
   try {
     loading.value = true
-    // Récupérer la farm depuis le auth store ou en créant une requête
     const response = await api.get('/settings/dashboard-stats')
     stats.value = response.data;
+    
+    // Aussi récupérer les campagnes pour le tableau
+    const campResponse = await api.get('/campaigns?limit=5')
+    campaigns.value = campResponse.data.campaigns
   } catch (error) {
     console.error('Erreur lors de la récupération des stats:', error)
   } finally {
@@ -297,7 +296,7 @@ const exporterPDF = async () => {
 
   } catch (error) {
     console.error('Erreur lors de l\'export PDF:', error)
-    alert('Erreur: ' + (error instanceof Error ? error.message : 'Erreur inconnue'))
+    ui.error('Erreur lors de l\'exportation PDF')
   }
 }
 </script>

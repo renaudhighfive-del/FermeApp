@@ -508,8 +508,10 @@
 <script setup>
 import { ref, computed, reactive, onMounted } from 'vue'
 import { useAdminStore } from '@/stores/admin'
+import { useUiStore } from '@/stores/ui'
 
 const admin = useAdminStore()
+const ui = useUiStore()
 const showAddModal = ref(false)
 const showDetailsModal = ref(false)
 const showEditModal = ref(false)
@@ -626,9 +628,10 @@ const submitAddAnimal = async () => {
     closeAddModal()
     // Reset page to 1 to see new animal
     currentPage.value = 1
+    ui.success('Animal ajouté avec succès')
   } catch (error) {
     console.error('Erreur:', error)
-    alert('Erreur: ' + (error.message || 'Impossible d\'ajouter l\'animal'))
+    ui.error('Erreur: ' + (error.message || 'Impossible d\'ajouter l\'animal'))
   } finally {
     isSubmitting.value = false
   }
@@ -675,21 +678,30 @@ const submitEditAnimal = async () => {
     // Update animal in store
     await admin.updateAnimal(selectedAnimal.value._id, updatedData)
     closeEditModal()
+    ui.success('Informations de l\'animal mises à jour')
   } catch (error) {
     console.error('Erreur:', error)
-    alert('Erreur: ' + (error.message || 'Impossible de modifier l\'animal'))
+    ui.error('Erreur: ' + (error.message || 'Impossible de modifier l\'animal'))
   } finally {
     isSubmitting.value = false
   }
 }
 
 const deleteAnimal = async (animalId) => {
-  if (confirm('Êtes-vous sûr de vouloir supprimer cet animal?')) {
+  const confirm = await ui.confirm({
+    title: 'Supprimer l\'animal',
+    message: 'Êtes-vous sûr de vouloir supprimer cet animal ? Cette action est irréversible.',
+    confirmText: 'Supprimer',
+    type: 'danger'
+  })
+
+  if (confirm) {
     try {
       await admin.deleteAnimal(animalId)
+      ui.success('Animal supprimé avec succès')
     } catch (error) {
       console.error('Erreur:', error)
-      alert('Erreur de suppression')
+      ui.error('Erreur de suppression')
     }
   }
 }

@@ -353,8 +353,10 @@
 <script setup>
 import { ref, computed, reactive, onMounted } from 'vue'
 import { useAdminStore } from '@/stores/admin'
+import { useUiStore } from '@/stores/ui'
 
 const admin = useAdminStore()
+const ui = useUiStore()
 const showDetailsModal = ref(false)
 const showEditModal = ref(false)
 const showOrderModal = ref(false)
@@ -462,9 +464,10 @@ const submitEditProduct = async () => {
       supplier: editForm.supplier
     })
     closeEditModal()
+    ui.success('Produit mis à jour avec succès')
   } catch (error) {
     console.error('Erreur:', error)
-    alert('Erreur: ' + (error.message || 'Impossible de modifier le produit'))
+    ui.error('Erreur: ' + (error.message || 'Impossible de modifier le produit'))
   } finally {
     isSubmitting.value = false
   }
@@ -512,10 +515,10 @@ const submitAddProduct = async () => {
     closeAddModal()
     // Rafraîchir la liste
     await admin.fetchProducts({})
-    alert('Produit ajouté avec succès !')
+    ui.success('Produit ajouté avec succès !')
   } catch (error) {
     console.error('Erreur:', error)
-    alert('Erreur: ' + (error.message || 'Impossible d\'ajouter le produit'))
+    ui.error('Erreur: ' + (error.message || 'Impossible d\'ajouter le produit'))
   } finally {
     isSubmitting.value = false
   }
@@ -529,22 +532,30 @@ const submitOrder = async () => {
       quantity: newQuantity
     })
     closeOrderModal()
-    alert('Commande confirmée! Quantité mise à jour.')
+    ui.success('Commande confirmée! Quantité mise à jour.')
   } catch (error) {
     console.error('Erreur:', error)
-    alert('Erreur: ' + (error.message || 'Impossible de confirmer la commande'))
+    ui.error('Erreur: ' + (error.message || 'Impossible de confirmer la commande'))
   } finally {
     isSubmitting.value = false
   }
 }
 
 const deleteProduct = async (productId) => {
-  if (confirm('Êtes-vous sûr de vouloir supprimer ce produit?')) {
+  const confirm = await ui.confirm({
+    title: 'Supprimer le produit',
+    message: 'Êtes-vous sûr de vouloir supprimer ce produit du stock ? Toutes les données associées seront perdues.',
+    confirmText: 'Supprimer',
+    type: 'danger',
+  })
+
+  if (confirm) {
     try {
       await admin.deleteProduct(productId)
+      ui.success('Produit supprimé du stock')
     } catch (error) {
       console.error('Erreur:', error)
-      alert('Erreur de suppression')
+      ui.error('Erreur de suppression')
     }
   }
 }

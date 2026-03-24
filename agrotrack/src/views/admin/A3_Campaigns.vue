@@ -390,8 +390,10 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useAdminStore } from '@/stores/admin'
+import { useUiStore } from '@/stores/ui'
 
 const admin = useAdminStore()
+const ui = useUiStore()
 
 // State
 const showModal = ref(false)
@@ -486,26 +488,42 @@ const submitForm = async () => {
         initialAnimalCount: form.initialAnimalCount,
         budget: form.budget,
         startDate: new Date().toISOString(),
-        farm: farmId
+        farm: farmId,
+        status: 'Préparation'
       })
     }
     
+    // Refresh the list after any change (Fetch all for admin)
+    await admin.fetchCampaigns({ limit: 100 })
+    
     closeModal()
+    ui.success(`Campagne ${isEditing.value ? 'mise à jour' : 'créée'} avec succès`)
   } catch (error) {
     console.error('Erreur:', error)
-    alert('Erreur: ' + (error.message || 'Impossible de sauvegarder'))
+    ui.error('Erreur: ' + (error.message || 'Impossible de sauvegarder'))
   } finally {
     isSubmitting.value = false
   }
 }
 
 const deleteCampaign = async (id) => {
-  if (confirm('Êtes-vous sûr de vouloir supprimer cette campagne?')) {
+  const confirm = await ui.confirm({
+    title: 'Supprimer la campagne',
+    message: 'Êtes-vous sûr de vouloir supprimer cette campagne ? Toutes les données associées seront perdues.',
+    confirmText: 'Supprimer',
+    type: 'danger'
+  })
+
+  if (confirm) {
     try {
       await admin.deleteCampaign(id)
+      
+      // Refresh the list after deletion (Fetch all for admin)
+      await admin.fetchCampaigns({ limit: 100 })
+      ui.success('Campagne supprimée avec succès')
     } catch (error) {
       console.error('Erreur:', error)
-      alert('Erreur de suppression')
+      ui.error('Erreur de suppression')
     }
   }
 }
@@ -533,14 +551,6 @@ const editFromDetails = (campaign) => {
 
 // Init
 onMounted(async () => {
-  const farmId = sessionStorage.getItem('currentFarm')
-  if (farmId) {
-    await admin.fetchCampaigns({ farm: farmId })
-  } else {
-    // Utiliser une ferme par défaut pour le test
-    console.warn('Aucune ferme sélectionnée, utilisation d\'une ferme par défaut')
-    sessionStorage.setItem('currentFarm', '507f1f77bcf86cd799439011') // ID par défaut
-    await admin.fetchCampaigns({ farm: '507f1f77bcf86cd799439011' })
-  }
+  await admin.fetchCampaigns({ limit: 100 })
 })
 </script>
