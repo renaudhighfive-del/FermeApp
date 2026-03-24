@@ -390,7 +390,7 @@ export const useAdminStore = defineStore("admin", () => {
     }
   };
 
-  return {
+    return {
     campaigns,
     farms,
     animals,
