@@ -22,14 +22,22 @@ export const createAnimal = async (req, res) => {
 
 export const getAnimals = async (req, res) => {
   try {
-    const { campaign, healthStatus, page = 1, limit = 20 } = req.query;
+    const { campaign, healthStatus, type, page = 1, limit = 20 } = req.query;
 
     let filter = {};
     if (campaign) filter.campaign = campaign;
-    if (healthStatus) filter.healthStatus = healthStatus;
+    if (healthStatus) {
+      // Map health status for filtering
+      if (healthStatus === 'Sain') filter.healthStatus = 'Sain';
+      else if (healthStatus === 'Anomalie') filter.healthStatus = { $in: ['Malade', 'Suspect'] };
+      else if (healthStatus === 'Observation') filter.healthStatus = 'Suspect';
+      else filter.healthStatus = healthStatus;
+    }
+    if (type) filter.type = type;
 
     const animals = await Animal.find(filter)
       .populate("campaign")
+      .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
 

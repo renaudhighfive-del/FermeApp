@@ -1,9 +1,15 @@
 import Product from "../models/Product.js";
 
-export const createProduct = async (req, res) => {
+export const createProduct = async (req, res, next) => {
   try {
-    const { farm, name, category, sku, quantity, unitPrice, supplier } =
-      req.body;
+    const { farm, name, category, sku, quantity, unitPrice, supplier } = req.body;
+
+    // Validation basique
+    if (!farm || !name || !category || !quantity || !unitPrice) {
+      const error = new Error("Champs requis manquants: farm, name, category, quantity, unitPrice");
+      error.statusCode = 400;
+      return next(error);
+    }
 
     const product = new Product({
       farm,
@@ -19,11 +25,12 @@ export const createProduct = async (req, res) => {
     await product.save();
     res.status(201).json(product);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    error.statusCode = error.statusCode || 400;
+    next(error);
   }
 };
 
-export const getProducts = async (req, res) => {
+export const getProducts = async (req, res, next) => {
   try {
     const { farm, category, page = 1, limit = 20 } = req.query;
 
@@ -43,21 +50,27 @@ export const getProducts = async (req, res) => {
       pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) },
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    error.statusCode = 500;
+    next(error);
   }
 };
 
-export const getProduct = async (req, res) => {
+export const getProduct = async (req, res, next) => {
   try {
     const product = await Product.findById(req.params.id).populate("farm");
-    if (!product) return res.status(404).json({ error: "Product not found" });
+    if (!product) {
+      const error = new Error("Product not found");
+      error.statusCode = 404;
+      return next(error);
+    }
     res.json(product);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    error.statusCode = 500;
+    next(error);
   }
 };
 
-export const updateProduct = async (req, res) => {
+export const updateProduct = async (req, res, next) => {
   try {
     const data = req.body;
     if (data.quantity || data.unitPrice) {
@@ -68,23 +81,29 @@ export const updateProduct = async (req, res) => {
       new: true,
     }).populate("farm");
 
-    if (!product) return res.status(404).json({ error: "Product not found" });
+    if (!product) {
+      const error = new Error("Product not found");
+      error.statusCode = 404;
+      return next(error);
+    }
     res.json(product);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    error.statusCode = 400;
+    next(error);
   }
 };
 
-export const deleteProduct = async (req, res) => {
+export const deleteProduct = async (req, res, next) => {
   try {
     await Product.findByIdAndDelete(req.params.id);
     res.status(204).send();
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    error.statusCode = 500;
+    next(error);
   }
 };
 
-export const getLowStockProducts = async (req, res) => {
+export const getLowStockProducts = async (req, res, next) => {
   try {
     const { farm } = req.query;
 
@@ -94,6 +113,7 @@ export const getLowStockProducts = async (req, res) => {
     const products = await Product.find(filter).populate("farm");
     res.json(products);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    error.statusCode = 500;
+    next(error);
   }
 };

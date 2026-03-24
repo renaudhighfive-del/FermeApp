@@ -73,6 +73,7 @@ export const healthService = {
   delete: (id) => axios.delete(`/health/${id}`),
   getUpcomingVaccinations: (params) =>
     axios.get("/health/upcoming-vaccinations", { params }),
+  getAlerts: (params) => axios.get("/health/alerts", { params }),
 };
 
 // SALES
@@ -98,3 +99,5 @@ export const settingsService = {
   update: (data) => axios.put("/settings", data),
   getDashboardStats: (params) => axios.get("/settings/dashboard-stats", { params }),
 };
+
+export default axios;

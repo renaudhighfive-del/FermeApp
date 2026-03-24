@@ -26,9 +26,6 @@
           <div class="nav-user-name">{{ userName }}</div>
           <div class="nav-user-role">{{ roleLabel }}</div>
         </div>
-        <svg width="14" height="14" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24">
-          <polyline points="6 9 12 15 18 9"/>
-        </svg>
       </div>
 
       <!-- Logout -->

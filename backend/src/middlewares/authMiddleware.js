@@ -45,6 +45,6 @@ export function autoriser(...roles) {
       });
     }
 
-    next();
+    return next();
   };
 }
