@@ -6,6 +6,7 @@ import { creerUser,
     modifierUser, 
     obtenirUser, 
     reinitialiserMotDePasse } from "../controllers/user.controller.js";
+
 const router = Router()
 
 // Toutes les routes nécessitent d'être connecté
