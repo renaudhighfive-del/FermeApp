@@ -1,13 +1,13 @@
 <template>
   <aside class="sidebar">
     <div class="sidebar-section">
-      <div class="sidebar-section-label">Principal</div>
-      <SidebarItem icon="grid"     label="Tableau de bord" to="/admin/dashboard"/>
-      <SidebarItem icon="flag"     label="Campagnes"       to="/admin/campaigns"/>
-      <SidebarItem icon="animal"   label="Animaux"         to="/admin/animals"/>
-      <SidebarItem icon="health"   label="Santé & Alertes" to="/admin/health"/>
-      <SidebarItem icon="box"      label="Alimentation"    to="/admin/stock"/>
-      <SidebarItem icon="chart"    label="Finance"         to="/admin/finance"/>
+      <div class="sidebar-section-label">Opérations</div>
+      <SidebarItem icon="dashboard" label="Campagnes"      to="/admin/campaigns"/>
+      <SidebarItem icon="stock"     label="Stock & Inventaire" to="/admin/stock"/>
+      <SidebarItem icon="reports"   label="Tâches & Suivi"   to="/admin/tasks"/>
+      <SidebarItem icon="finance"   label="Finance"         to="/admin/finance"/>
+      <SidebarItem icon="health"    label="Santé & Suivi"   to="/admin/health"/>
+      <SidebarItem icon="animals"   label="Animaux"         to="/admin/animals"/>
       <SidebarItem icon="sales"    label="Ventes"          to="/admin/sales"/>
     </div>
     <div class="sidebar-section">

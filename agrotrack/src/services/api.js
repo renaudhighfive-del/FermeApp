@@ -13,7 +13,7 @@ export const userService = {
   create: (data) => axios.post("/users", data),
   update: (id, data) => axios.put(`/users/${id}`, data),
   delete: (id) => axios.delete(`/users/${id}`),
-  resetPassword: (id, password) => axios.patch(`/users/${id}/mot-de-passe`, { password }),
+  resetPassword: (id, password) => axios.patch(`/users/${id}/mot-de-passe`, { nouveauMotDePasse: password }),
   deactivateUser: (id) => axios.patch(`/users/${id}/desactiver`, {}),
 };
 
@@ -98,6 +98,14 @@ export const settingsService = {
   get: (params) => axios.get("/settings", { params }),
   update: (data) => axios.put("/settings", data),
   getDashboardStats: (params) => axios.get("/settings/dashboard-stats", { params }),
+};
+
+// EVENTS (TASKS)
+export const eventService = {
+  getAll: (params) => axios.get("/events", { params }),
+  create: (data) => axios.post("/events", data),
+  update: (id, data) => axios.put(`/events/${id}`, data),
+  delete: (id) => axios.delete(`/events/${id}`),
 };
 
 export default axios;

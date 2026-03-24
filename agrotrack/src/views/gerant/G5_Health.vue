@@ -7,7 +7,7 @@
         <p class="page-subtitle" v-if="campaign">{{ campaign.name }} · Suivi sanitaire</p>
         <p class="page-subtitle" v-else>Aucune campagne active</p>
       </div>
-      <div class="page-actions"><button class="btn btn-primary"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Enregistrer événement</button></div>
+      <div class="page-actions"><button class="btn btn-primary" @click="showEventModal = true"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Enregistrer événement</button></div>
     </div>
   </div>
 
@@ -54,6 +54,8 @@
       </div>
     </div>
   </div>
+
+  <ModalHealthEvent :open="showEventModal" :campaign="campaign" @close="handleEventModalClose"/>
 </div>
 </template>
 
@@ -61,10 +63,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useGerantStore } from '@/stores/gerant'
 import { healthService } from '@/services/api'
+import ModalHealthEvent from '@/components/common/ModalHealthEvent.vue'
 
 const gerantStore = useGerantStore()
 const campaign = computed(() => gerantStore.activeCampaigns[0] || null)
 const healthEvents = ref([])
+const showEventModal = ref(false)
 
 onMounted(async () => {
   await loadHealthEvents()
@@ -106,5 +110,10 @@ function getStatusClass(status) {
     'En cours': 'badge-encours2'
   }
   return classes[status] || 'badge-inactif'
+}
+
+async function handleEventModalClose() {
+  showEventModal.value = false
+  await loadHealthEvents()
 }
 </script>

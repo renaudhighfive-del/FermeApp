@@ -10,6 +10,7 @@ import healthRoutes from './health.route.js'
 import saleRoutes from './sale.route.js'
 import reportRoutes from './report.route.js'
 import settingsRoutes from './settings.route.js'
+import eventRoutes from './event.route.js'
 
 const router = Router()
 
@@ -24,5 +25,6 @@ router.use("/health", healthRoutes)
 router.use("/sales", saleRoutes)
 router.use("/reports", reportRoutes)
 router.use("/settings", settingsRoutes)
+router.use("/events", eventRoutes)
 
 export default router;

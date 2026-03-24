@@ -71,13 +71,14 @@
         </div>
       </div>
       <div class="campaign-card-actions">
-        <RouterLink :to="'/gerant/campaigns/' + (campaign._id || campaign.id)" class="btn btn-primary btn-sm">Voir détail</RouterLink>
-        <button class="btn btn-outline btn-sm">Modifier</button>
+        <RouterLink :to="'/gerant/campaigns/' + (campaign._id || campaign._id)" class="btn btn-primary btn-sm">Voir détail</RouterLink>
+        <button class="btn btn-outline btn-sm" @click="editCampaign(campaign)">Modifier</button>
       </div>
     </div>
   </div>
 
   <ModalNewCampaign :open="showModal" @close="handleModalClose"/>
+  <ModalEditCampaign :open="showEditModal" :campaign="selectedCampaign" @close="handleEditModalClose"/>
 </div>
 </template>
 
@@ -85,9 +86,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useGerantStore } from '@/stores/gerant'
 import ModalNewCampaign from '@/components/common/ModalNewCampaign.vue'
+import ModalEditCampaign from '@/components/common/ModalEditCampaign.vue'
 
 const gerantStore = useGerantStore()
 const showModal = ref(false)
+const showEditModal = ref(false)
+const selectedCampaign = ref(null)
 const activeFilter = ref('Toutes')
 const selectedAnimalType = ref('')
 const loading = ref(false)
@@ -172,6 +176,17 @@ function getStatusClass(status) {
 
 async function handleModalClose() {
   showModal.value = false
+  await loadData()
+}
+
+function editCampaign(campaign) {
+  selectedCampaign.value = campaign
+  showEditModal.value = true
+}
+
+async function handleEditModalClose() {
+  showEditModal.value = false
+  selectedCampaign.value = null
   await loadData()
 }
 </script>
