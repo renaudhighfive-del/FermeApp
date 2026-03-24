@@ -1,26 +1,17 @@
 <template>
-  <div>
-    <!-- Realtime -->
-    <div class="realtime-bar">
-      <span class="status-dot status-online"></span>
-      En direct · MAJ il y a 2 min
-    </div>
+  <div id="pdf-content">
 
     <!-- Header -->
     <div class="page-header">
       <div class="page-header-row">
         <div>
           <h1 class="page-title">Tableau de bord</h1>
-          <p class="page-subtitle">{{ dateAujourdhui }}</p>
+          <p class="page-subtitle">{{ dateAujourdhui[0].toUpperCase()+dateAujourdhui.slice(1) }}</p>
         </div>
         <div class="page-actions">
-          <button class="btn btn-outline btn-sm">
+          <button class="btn btn-outline btn-sm" @click="exporterPDF">
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Exporter
-          </button>
-          <button class="btn btn-primary btn-sm" @click="showModal=true">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Nouvelle campagne
           </button>
         </div>
       </div>
@@ -32,7 +23,7 @@
         <div class="kpi-top">
           <div>
             <div class="kpi-label">Total Animaux</div>
-            <div class="kpi-value">4 280</div>
+            <div class="kpi-value">{{ stats.totalAnimals }}</div>
             <div class="kpi-sub up">↑ +120 cette semaine</div>
           </div>
           <div class="kpi-icon" style="background:#FEF0E7">
@@ -44,7 +35,7 @@
         <div class="kpi-top">
           <div>
             <div class="kpi-label">Campagnes Actives</div>
-            <div class="kpi-value">7</div>
+            <div class="kpi-value">{{ stats.activeCampaigns }}</div>
             <div class="kpi-sub">3 volaille · 2 bétail · 2 pisciculture</div>
           </div>
           <div class="kpi-icon" style="background:#E3EFF5">
@@ -56,7 +47,7 @@
         <div class="kpi-top">
           <div>
             <div class="kpi-label">Taux de Mortalité</div>
-            <div class="kpi-value" style="color:var(--danger)">2.4%</div>
+            <div class="kpi-value" style="color:var(--danger)">{{ stats.mortality }}%</div>
             <div class="kpi-sub down">↑ +0.3% vs semaine passée</div>
           </div>
           <div class="kpi-icon" style="background:#FDECEA">
@@ -68,7 +59,7 @@
         <div class="kpi-top">
           <div>
             <div class="kpi-label">Revenus du Mois</div>
-            <div class="kpi-value" style="color:var(--success)">1 240 000</div>
+            <div class="kpi-value" style="color:var(--success)">{{ (stats.totalRevenue / 1000).toLocaleString('fr-FR') }}</div>
             <div class="kpi-sub up">↑ +8% vs mois passé · FCFA</div>
           </div>
           <div class="kpi-icon" style="background:#D4EDDA">
@@ -81,7 +72,7 @@
     <!-- Charts + Table -->
     <div class="grid-2-1 mb-gap">
       <!-- Left: charts -->
-      <div class="flex flex-col gap-20">
+      <div class="flex flex-col gap-20" id="content">
         <!-- Bar chart -->
         <div class="card">
           <div class="card-title">Revenus vs Dépenses par campagne</div>
@@ -164,29 +155,20 @@
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td class="fw-600">Campagne Mars 2026</td>
-                  <td><span class="badge badge-vol">Volaille</span></td>
-                  <td><span class="badge badge-encours">En cours</span></td>
-                  <td>500/480</td>
-                  <td>850 000 FCFA</td>
-                  <td><button class="btn btn-outline btn-sm"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></td>
+                <tr v-for="campaign in campaigns" :key="campaign._id">
+                  <td class="fw-600">{{ campaign.name }}</td>
+                  <td><span class="badge" :class="'badge-' + (campaign.animalType === 'Volaille' ? 'vol' : campaign.animalType === 'Bétail' ? 'bet' : 'pis')">{{ campaign.animalType }}</span></td>
+                  <td><span class="badge" :class="campaign.status === 'En cours' ? 'badge-encours' : campaign.status === 'Terminée' ? 'badge-terminee' : 'badge-prep'">{{ campaign.status }}</span></td>
+                  <td>{{ campaign.currentAnimalCount }}/{{ campaign.initialAnimalCount }}</td>
+                  <td>{{ campaign.budget.toLocaleString() }} FCFA</td>
+                  <td>
+                    <RouterLink :to="'/admin/campaigns'" class="btn btn-outline btn-sm">
+                      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </RouterLink>
+                  </td>
                 </tr>
-                <tr>
-                  <td class="fw-600">Lot Bœufs Fév</td>
-                  <td><span class="badge badge-bet">Bétail</span></td>
-                  <td><span class="badge badge-terminee">Terminée</span></td>
-                  <td>45/43</td>
-                  <td>2 400 000 FCFA</td>
-                  <td><button class="btn btn-outline btn-sm"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></td>
-                </tr>
-                <tr>
-                  <td class="fw-600">Bassin Tilapia</td>
-                  <td><span class="badge badge-pis">Pisciculture</span></td>
-                  <td><span class="badge badge-prep">En préparation</span></td>
-                  <td>0/1000</td>
-                  <td>320 000 FCFA</td>
-                  <td><button class="btn btn-outline btn-sm"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></td>
+                <tr v-if="campaigns.length === 0">
+                  <td colspan="6" class="text-center py-20 text-soft">Aucune campagne récente</td>
                 </tr>
               </tbody>
             </table>
@@ -195,7 +177,7 @@
       </div>
 
       <!-- Right: alerts panel -->
-      <div class="card" style="background:#FFF8F0;align-self:start">
+      <div class="card" style="background:#FFF8F0">
         <div class="card-title">
           <svg width="18" height="18" fill="none" stroke="var(--warn)" stroke-width="1.5" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
           Alertes actives
@@ -233,12 +215,25 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAuthStore }  from '@/stores/auth.js'
+import { useUiStore }    from '@/stores/ui.js'
 import ModalNewCampaign  from '@/components/common/ModalNewCampaign.vue'
+import api from '../../services/api.js'
 
 const auth      = useAuthStore()
+const ui        = useUiStore()
 const showModal = ref(false)
+
+// Dashboard stats
+const stats = ref({
+  totalAnimals: 0,
+  activeCampaigns: 0,
+  mortality: 0,
+  totalRevenue: 0,
+})
+
+const loading = ref(true)
 
 // Date dynamique
 const dateAujourdhui = computed(() => {
@@ -249,4 +244,72 @@ const dateAujourdhui = computed(() => {
     year:    'numeric',
   })
 })
+
+// Table
+const campaigns = ref([])
+
+// Récupérer les stats du dashboard
+const fetchDashboardStats = async () => {
+  try {
+    loading.value = true
+    const response = await api.get('/settings/dashboard-stats')
+    stats.value = response.data;
+    
+    // Aussi récupérer les campagnes pour le tableau
+    const campResponse = await api.get('/campaigns?limit=5')
+    campaigns.value = campResponse.data.campaigns
+  } catch (error) {
+    console.error('Erreur lors de la récupération des stats:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchDashboardStats()
+})
+
+// Exporter en PDF
+const exporterPDF = async () => {
+  try {
+    const { default: html2pdf } = await import('html2pdf.js')
+    
+    const element = document.getElementById('pdf-content')
+
+    if (!element) {
+      throw new Error('Element introuvable')
+    }
+
+    const opt = {
+      margin: 10,
+      filename: `Projet-GP-Renaud-${new Date().toLocaleDateString('fr-FR')}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { 
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      }
+    }
+    
+    html2pdf().set(opt).from(element).save()
+
+  } catch (error) {
+    console.error('Erreur lors de l\'export PDF:', error)
+    ui.error('Erreur lors de l\'exportation PDF')
+  }
+}
 </script>
+
+<style scoped>
+  #pdf-content{
+    margin-top: 10rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 80vh;
+  }
+  #content{
+    overflow: hidden;
+  }
+</style>

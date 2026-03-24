@@ -16,7 +16,7 @@
         <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
           <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6.002 6.002 0 0 0-4-5.659V4a2 2 0 1 0-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0a3 3 0 1 1-6 0m6 0H9"/>
         </svg>
-        <span class="notif-badge">3</span>
+        <span v-if="urgentAlertsCount > 0" class="notif-badge urgent">{{ urgentAlertsCount }}</span>
       </button>
 
       <!-- User info -->
@@ -26,9 +26,6 @@
           <div class="nav-user-name">{{ userName }}</div>
           <div class="nav-user-role">{{ roleLabel }}</div>
         </div>
-        <svg width="14" height="14" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24">
-          <polyline points="6 9 12 15 18 9"/>
-        </svg>
       </div>
 
       <!-- Logout -->
@@ -43,11 +40,15 @@
 </template>
 
 <script setup>
-import { computed }      from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useRouter }     from 'vue-router'
 import { useAuthStore }  from '@/stores/auth.js'
+import { useAdminStore } from '@/stores/admin.js'
+import { useUiStore }    from '@/stores/ui.js'
 
 const auth   = useAuthStore()
+const admin  = useAdminStore()
+const ui     = useUiStore()
 const router = useRouter()
 
 defineEmits(['openNotifs', 'openUserMenu'])
@@ -60,11 +61,43 @@ const initials   = computed(() => {
   return n.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
 })
 
-function handleLogout() {
-  auth.logout()
-  router.push('/login')
+// Alertes urgentes calculées dynamiquement depuis le store
+const urgentAlertsCount = computed(() => {
+  return admin.alerts.filter(a => a.priority === 'urgent' && !a.resolved).length
+})
+
+let refreshInterval = null
+
+async function handleLogout() {
+  const confirm = await ui.confirm({
+    title: 'Déconnexion',
+    message: 'Êtes-vous sûr de vouloir vous déconnecter de votre session ?',
+    confirmText: 'Se déconnecter',
+    type: 'warning'
+  })
+
+  if (confirm) {
+    auth.logout()
+    router.push('/login')
+    ui.success('Vous avez été déconnecté avec succès')
+  }
 }
+
+onMounted(() => {
+  // Charger les alertes au montage
+  admin.fetchAlerts()
+  
+  // Mettre à jour périodiquement (toutes les 30 secondes)
+  refreshInterval = setInterval(() => {
+    admin.fetchAlerts()
+  }, 30000)
+})
+
+onUnmounted(() => {
+  if (refreshInterval) clearInterval(refreshInterval)
+})
 </script>
+
 
 <style scoped>
 .logout-btn {
@@ -81,5 +114,27 @@ function handleLogout() {
 .logout-btn:hover {
   color: #fff;
   background: rgba(255, 255, 255, 0.1);
+}
+
+.notif-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: #F2B705;
+  color: #1A1A1A;
+  font-size: 10px;
+  font-weight: 700;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid #1A1A1A;
+}
+
+.notif-badge.urgent {
+  background: #D62828;
+  color: #FFFFFF;
 }
 </style>

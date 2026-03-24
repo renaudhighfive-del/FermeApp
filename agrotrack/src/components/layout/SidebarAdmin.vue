@@ -14,6 +14,7 @@
       <div class="sidebar-section-label">Administration</div>
       <SidebarItem icon="users"    label="Utilisateurs"    to="/admin/users"/>
       <SidebarItem icon="reports"  label="Rapports"        to="/admin/reports"/>
+      <SidebarItem icon="settings" label="Fermes"          to="/admin/farms"/>
       <SidebarItem icon="settings" label="Paramètres"      to="/admin/settings"/>
     </div>
     <div class="sidebar-bottom">

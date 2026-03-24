@@ -19,6 +19,12 @@ const farmSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
+    agents: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
     totalArea: { type: Number }, // in hectares
     productionTypes: [String], // ['Volaille', 'Bétail', 'Pisciculture']
     active: { type: Boolean, default: true },

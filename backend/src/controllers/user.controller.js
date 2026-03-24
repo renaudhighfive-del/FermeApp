@@ -75,7 +75,7 @@ export async function modifierUser(req, res, next) {
       return res.status(400).json({ message: "ID invalide" });
     }
 
-    const { name, email, role, fermesAssignees, actif } = req.body;
+    const { name, email, role, farms, campaignsAssignees, actif } = req.body;
     const miseAJour = {};
 
     if (name) miseAJour.name = name.trim();
@@ -85,12 +85,20 @@ export async function modifierUser(req, res, next) {
         return res.status(400).json({ message: "Rôle invalide" });
       }
       miseAJour.role = role;
-      // Si on change le rôle et que c'est plus gérant → vider les fermes
-      if (role !== "gerant") miseAJour.fermesAssignees = [];
+      // Si on change le rôle et que c'est plus gérant/agent → vider les fermes
+      if (role === "admin") {
+        miseAJour.farms = [];
+        miseAJour.campaignsAssignees = [];
+      }
     }
-    if (fermesAssignees !== undefined)
-      miseAJour.fermesAssignees = fermesAssignees;
+    if (farms !== undefined) miseAJour.farms = farms;
+    if (campaignsAssignees !== undefined) miseAJour.campaignsAssignees = campaignsAssignees;
     if (actif !== undefined) miseAJour.actif = actif;
+
+    const userOld = await User.findById(id);
+    if (!userOld) {
+      return res.status(404).json({ message: "Utilisateur introuvable" });
+    }
 
     const user = await User.findByIdAndUpdate(
       id,
@@ -99,8 +107,46 @@ export async function modifierUser(req, res, next) {
     )
       .select("-__v -passwordHash");
 
-    if (!user) {
-      return res.status(404).json({ message: "Utilisateur introuvable" });
+    // Mettre à jour les relations bidirectionnelles si les fermes ou campagnes ont changé
+    if (farms !== undefined || campaignsAssignees !== undefined || role !== undefined) {
+      try {
+        // 1. Retirer l'utilisateur des anciennes relations
+        await mongoose.model('Farm').updateMany(
+          { _id: { $in: userOld.farms } },
+          { $pull: { managers: id, agents: id } }
+        );
+        await mongoose.model('Campaign').updateMany(
+          { _id: { $in: userOld.campaignsAssignees } },
+          { $pull: { managers: id, agents: id } }
+        );
+
+        // 2. Ajouter l'utilisateur aux nouvelles relations
+        const updatedFarms = farms !== undefined ? farms : userOld.farms;
+        const updatedCampaigns = campaignsAssignees !== undefined ? campaignsAssignees : userOld.campaignsAssignees;
+        const updatedRole = role !== undefined ? role : userOld.role;
+
+        if (updatedRole === 'gerant') {
+          await mongoose.model('Farm').updateMany(
+            { _id: { $in: updatedFarms } },
+            { $addToSet: { managers: id } }
+          );
+          await mongoose.model('Campaign').updateMany(
+            { _id: { $in: updatedCampaigns } },
+            { $addToSet: { managers: id } }
+          );
+        } else if (updatedRole === 'agent') {
+          await mongoose.model('Farm').updateMany(
+            { _id: { $in: updatedFarms } },
+            { $addToSet: { agents: id } }
+          );
+          await mongoose.model('Campaign').updateMany(
+            { _id: { $in: updatedCampaigns } },
+            { $addToSet: { agents: id } }
+          );
+        }
+      } catch (updateErr) {
+        console.error("Erreur lors de la mise à jour des relations bidirectionnelles (update):", updateErr);
+      }
     }
 
     res.json({ message: "Utilisateur mis à jour", user });
@@ -143,8 +189,8 @@ export async function reinitialiserMotDePasse(req, res, next) {
   }
 }
 
-// ── Désactiver un user — soft delete ─────────────────────────────
-export async function desactiverUser(req, res, next) {
+// ── Activer/Désactiver un user ─────────────────────────────────────
+export async function toggleUserStatus(req, res, next) {
   try {
     const { id } = req.params;
 
@@ -152,19 +198,24 @@ export async function desactiverUser(req, res, next) {
       return res.status(400).json({ message: "ID invalide" });
     }
 
-    // Soft delete : on désactive plutôt que supprimer
-    // pour garder l'historique des campagnes liées à cet user
-    const user = await User.findByIdAndUpdate(
-      id,
-      { $set: { actif: false } },
-      { new: true },
-    ).select("name email role actif");
-
-    if (!user) {
+    const userToToggle = await User.findById(id);
+    if (!userToToggle) {
       return res.status(404).json({ message: "Utilisateur introuvable" });
     }
 
-    res.json({ message: "Utilisateur désactivé", user });
+    // On inverse le statut actuel
+    const nouveauStatut = !userToToggle.actif;
+
+    const user = await User.findByIdAndUpdate(
+      id,
+      { $set: { actif: nouveauStatut } },
+      { new: true },
+    ).select("name email role actif");
+
+    res.json({ 
+      message: nouveauStatut ? "Utilisateur activé" : "Utilisateur désactivé", 
+      user 
+    });
   } catch (err) {
     return next(err)
   }

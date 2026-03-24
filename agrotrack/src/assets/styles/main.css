@@ -5,7 +5,15 @@
    ============================================= */
 .app-layout { display: flex; flex-direction: column; height: 100vh; }
 .app-body { display: flex; flex: 1; overflow: hidden; }
-.main-content { flex: 1; overflow-y: auto; padding: var(--gap); background: var(--bg); animation: fadeIn 0.2s ease; }
+.main-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: var(--gap); background: var(--bg); animation: fadeIn 0.2s ease; }
+
+/* Dashboard content - ensure scrollable */
+#pdf-content { 
+  display: block; 
+  width: 100%; 
+  min-height: auto;
+  height: auto;
+}
 
 /* =============================================
    NAVBAR
@@ -163,9 +171,7 @@
 /* =============================================
    GRIDS
    ============================================= */
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); margin-bottom: var(--gap); }
-.grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: var(--gap); margin-bottom: var(--gap); }
-.grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: var(--gap); margin-bottom: var(--gap); }
+.grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: var(--gap); margin-bottom: var(--gap); width: 100%; }
 .grid-3-1 { display: grid; grid-template-columns: 3fr 1fr; gap: var(--gap); margin-bottom: var(--gap); }
 .mb-gap { margin-bottom: var(--gap); }
 

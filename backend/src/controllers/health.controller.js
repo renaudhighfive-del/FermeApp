@@ -1,4 +1,5 @@
 import HealthRecord from "../models/HealthRecord.js";
+import Animal from "../models/Animal.js";
 
 export const createHealthRecord = async (req, res) => {
   try {
@@ -107,6 +108,57 @@ export const getUpcomingVaccinations = async (req, res) => {
       .sort({ nextScheduledDate: 1 });
 
     res.json(records);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getAlerts = async (req, res) => {
+  try {
+    // Get health records with status 'En attente' (pending alerts)
+    const healthAlerts = await HealthRecord.find({ status: "En attente" })
+      .populate("animal")
+      .populate("campaign")
+      .sort({ date: -1 });
+
+    // Get animals with health issues
+    const sickAnimals = await Animal.find({ 
+      healthStatus: { $in: ["Malade", "Suspect"] } 
+    })
+      .populate("campaign")
+      .sort({ updatedAt: -1 });
+
+    // Convert to alerts format with priority
+    const alerts = [
+      // Critical: Sick animals
+      ...sickAnimals.map(animal => ({
+        _id: animal._id,
+        type: "health_status",
+        priority: "urgent",
+        title: `Animal ${animal.healthStatus}`,
+        description: `Animal ${animal.idNumber} - Statut: ${animal.healthStatus}`,
+        animal: animal,
+        campaign: animal.campaign,
+        date: animal.updatedAt,
+        resolved: false
+      })),
+      // Warnings: Pending health records
+      ...healthAlerts.map(record => ({
+        _id: record._id,
+        type: "health_record",
+        priority: record.type === "Vaccination" ? "warning" : record.type === "Diagnostic" ? "urgent" : "info",
+        title: `${record.type} en attente - ${record.animal?.idNumber || "N/A"}`,
+        description: record.description,
+        animal: record.animal,
+        campaign: record.campaign,
+        date: record.date,
+        resolved: record.status === "Complété"
+      }))
+    ];
+
+    res.json({
+      alerts: alerts.sort((a, b) => new Date(b.date) - new Date(a.date))
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

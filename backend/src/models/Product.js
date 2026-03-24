@@ -22,9 +22,8 @@ const productSchema = new mongoose.Schema(
 );
 
 // Auto-calculate totalValue
-productSchema.pre("save", function (next) {
+productSchema.pre("save", async function() {
   this.totalValue = this.quantity * this.unitPrice;
-  next();
 });
 
 export default mongoose.model("Product", productSchema);

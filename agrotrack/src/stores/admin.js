@@ -19,6 +19,7 @@ export const useAdminStore = defineStore("admin", () => {
   const animals = ref([]);
   const products = ref([]);
   const transactions = ref([]);
+  const alerts = ref([]);
   const sales = ref([]);
   const reports = ref([]);
   const loading = ref(false);
@@ -102,11 +103,59 @@ export const useAdminStore = defineStore("admin", () => {
     }
   };
 
+  // Farms
+  const fetchFarms = async (filter = {}) => {
+    loading.value = true;
+    try {
+      const response = await farmService.getAll(filter);
+      farms.value = response.data.farms;
+      return response.data;
+    } catch (err) {
+      error.value = err.message;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const createFarm = async (data) => {
+    try {
+      const response = await farmService.create(data);
+      farms.value.push(response.data);
+      return response.data;
+    } catch (err) {
+      error.value = err.message;
+      throw err;
+    }
+  };
+
+  const updateFarm = async (id, data) => {
+    try {
+      const response = await farmService.update(id, data);
+      const index = farms.value.findIndex((f) => f._id === id);
+      if (index !== -1) farms.value[index] = response.data;
+      return response.data;
+    } catch (err) {
+      error.value = err.message;
+      throw err;
+    }
+  };
+
+  const deleteFarm = async (id) => {
+    try {
+      await farmService.delete(id);
+      farms.value = farms.value.filter((f) => f._id !== id);
+    } catch (err) {
+      error.value = err.message;
+      throw err;
+    }
+  };
+
   // Animals
   const fetchAnimals = async (filter = {}) => {
     loading.value = true;
     try {
-      const response = await animalService.getAll(filter);
+      // Fetch all animals with a high limit
+      const response = await animalService.getAll({ ...filter, limit: 1000 });
       animals.value = response.data.animals;
       return response.data;
     } catch (err) {
@@ -121,6 +170,28 @@ export const useAdminStore = defineStore("admin", () => {
       const response = await animalService.create(data);
       animals.value.push(response.data);
       return response.data;
+    } catch (err) {
+      error.value = err.message;
+      throw err;
+    }
+  };
+
+  const updateAnimal = async (id, data) => {
+    try {
+      const response = await animalService.update(id, data);
+      const index = animals.value.findIndex((a) => a._id === id);
+      if (index !== -1) animals.value[index] = response.data;
+      return response.data;
+    } catch (err) {
+      error.value = err.message;
+      throw err;
+    }
+  };
+
+  const deleteAnimal = async (id) => {
+    try {
+      await animalService.delete(id);
+      animals.value = animals.value.filter((a) => a._id !== id);
     } catch (err) {
       error.value = err.message;
       throw err;
@@ -152,6 +223,28 @@ export const useAdminStore = defineStore("admin", () => {
     }
   };
 
+  const updateProduct = async (id, data) => {
+    try {
+      const response = await productService.update(id, data);
+      const index = products.value.findIndex((p) => p._id === id);
+      if (index !== -1) products.value[index] = response.data;
+      return response.data;
+    } catch (err) {
+      error.value = err.message;
+      throw err;
+    }
+  };
+
+  const deleteProduct = async (id) => {
+    try {
+      await productService.delete(id);
+      products.value = products.value.filter((p) => p._id !== id);
+    } catch (err) {
+      error.value = err.message;
+      throw err;
+    }
+  };
+
   // Transactions
   const fetchTransactions = async (filter = {}) => {
     loading.value = true;
@@ -171,6 +264,31 @@ export const useAdminStore = defineStore("admin", () => {
       const response = await transactionService.create(data);
       transactions.value.push(response.data);
       return response.data;
+    } catch (err) {
+      error.value = err.message;
+      throw err;
+    }
+  };
+
+  // Alerts
+  const fetchAlerts = async (filter = {}) => {
+    loading.value = true;
+    try {
+      const response = await healthService.getAlerts(filter);
+      alerts.value = response.data.alerts;
+      return response.data;
+    } catch (err) {
+      error.value = err.message;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const resolveAlert = async (id) => {
+    try {
+      // Update the health record or mark as resolved
+      await healthService.update(id, { status: "Complété" });
+      alerts.value = alerts.value.filter((a) => a._id !== id);
     } catch (err) {
       error.value = err.message;
       throw err;
@@ -230,6 +348,7 @@ export const useAdminStore = defineStore("admin", () => {
     animals,
     products,
     transactions,
+    alerts,
     sales,
     reports,
     loading,
@@ -244,12 +363,22 @@ export const useAdminStore = defineStore("admin", () => {
     createCampaign,
     updateCampaign,
     deleteCampaign,
+    fetchFarms,
+    createFarm,
+    updateFarm,
+    deleteFarm,
     fetchAnimals,
     addAnimal,
+    updateAnimal,
+    deleteAnimal,
     fetchProducts,
     addProduct,
+    updateProduct,
+    deleteProduct,
     fetchTransactions,
     addTransaction,
+    fetchAlerts,
+    resolveAlert,
     fetchSales,
     addSale,
     fetchReports,

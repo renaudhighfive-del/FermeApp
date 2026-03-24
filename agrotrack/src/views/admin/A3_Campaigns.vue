@@ -121,6 +121,12 @@
               <td class="px-6 py-4">
                 <div class="flex gap-2">
                   <button 
+                    @click="openDetailsModal(campaign)"
+                    class="text-green-600 hover:text-green-800 text-sm font-medium"
+                  >
+                    Voir Détails
+                  </button>
+                  <button 
                     @click="openEditModal(campaign)"
                     class="text-blue-600 hover:text-blue-800 text-sm"
                   >
@@ -272,20 +278,130 @@
         </form>
       </div>
     </div>
+
+    <!-- Modal Détails Campagne -->
+    <div v-if="showDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-lg p-8 w-full max-w-2xl max-h-96 overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold">Détails de la Campagne</h2>
+          <button 
+            @click="closeDetailsModal"
+            class="text-gray-500 hover:text-gray-700 text-2xl"
+          >
+            ×
+          </button>
+        </div>
+
+        <div v-if="selectedCampaign" class="grid grid-cols-2 gap-6">
+          <!-- Colonne 1 -->
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">Nom</label>
+              <p class="text-gray-900 font-medium">{{ selectedCampaign.name }}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">Type d'animal</label>
+              <p class="text-gray-900">{{ selectedCampaign.animalType }}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">Statut</label>
+              <span 
+                :class="{
+                  'bg-blue-100 text-blue-800': selectedCampaign.status === 'En cours',
+                  'bg-green-100 text-green-800': selectedCampaign.status === 'Terminée',
+                  'bg-yellow-100 text-yellow-800': selectedCampaign.status === 'Préparation',
+                }"
+                class="px-3 py-1 rounded-full text-sm font-medium inline-block"
+              >
+                {{ selectedCampaign.status }}
+              </span>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">Budget</label>
+              <p class="text-gray-900 font-medium">{{ selectedCampaign.budget.toLocaleString() }} FCFA</p>
+            </div>
+          </div>
+
+          <!-- Colonne 2 -->
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">Nombre initial d'animaux</label>
+              <p class="text-gray-900">{{ selectedCampaign.initialAnimalCount }}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">Nombre actuel d'animaux</label>
+              <p class="text-gray-900">{{ selectedCampaign.currentAnimalCount }}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">Taux de mortalité</label>
+              <p 
+                :class="{
+                  'text-red-600': selectedCampaign.mortality > 10,
+                  'text-yellow-600': selectedCampaign.mortality > 5 && selectedCampaign.mortality <= 10,
+                  'text-green-600': selectedCampaign.mortality <= 5,
+                }"
+                class="font-bold text-lg"
+              >
+                {{ selectedCampaign.mortality }}%
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">Date de démarrage</label>
+              <p class="text-gray-900">{{ new Date(selectedCampaign.startDate).toLocaleDateString('fr-FR') }}</p>
+            </div>
+          </div>
+
+          <!-- Ligne complète : Informations complémentaires -->
+          <div v-if="selectedCampaign.endDate" class="col-span-2">
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Date de fin</label>
+            <p class="text-gray-900">{{ new Date(selectedCampaign.endDate).toLocaleDateString('fr-FR') }}</p>
+          </div>
+
+          <div v-if="selectedCampaign.spent !== undefined" class="col-span-2">
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Montant dépensé</label>
+            <p class="text-gray-900 font-medium">{{ selectedCampaign.spent.toLocaleString() }} FCFA</p>
+          </div>
+
+          <div v-if="selectedCampaign.actualRevenue !== undefined" class="col-span-2">
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Revenu réalisé</label>
+            <p class="text-gray-900 font-medium text-green-600">{{ selectedCampaign.actualRevenue.toLocaleString() }} FCFA</p>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-6 border-t mt-6">
+          <button 
+            @click="closeDetailsModal"
+            class="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg"
+          >
+            Fermer
+          </button>
+          <button 
+            @click="editFromDetails(selectedCampaign)"
+            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+          >
+            Modifier
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useAdminStore } from '@/stores/admin'
+import { useUiStore } from '@/stores/ui'
 
 const admin = useAdminStore()
+const ui = useUiStore()
 
 // State
 const showModal = ref(false)
 const isEditing = ref(false)
 const isSubmitting = ref(false)
 const currentCampaignId = ref(null)
+const showDetailsModal = ref(false)
+const selectedCampaign = ref(null)
 
 // Filters
 const filters = reactive({
@@ -372,26 +488,42 @@ const submitForm = async () => {
         initialAnimalCount: form.initialAnimalCount,
         budget: form.budget,
         startDate: new Date().toISOString(),
-        farm: farmId
+        farm: farmId,
+        status: 'Préparation'
       })
     }
     
+    // Refresh the list after any change (Fetch all for admin)
+    await admin.fetchCampaigns({ limit: 100 })
+    
     closeModal()
+    ui.success(`Campagne ${isEditing.value ? 'mise à jour' : 'créée'} avec succès`)
   } catch (error) {
     console.error('Erreur:', error)
-    alert('Erreur: ' + (error.message || 'Impossible de sauvegarder'))
+    ui.error('Erreur: ' + (error.message || 'Impossible de sauvegarder'))
   } finally {
     isSubmitting.value = false
   }
 }
 
 const deleteCampaign = async (id) => {
-  if (confirm('Êtes-vous sûr de vouloir supprimer cette campagne?')) {
+  const confirm = await ui.confirm({
+    title: 'Supprimer la campagne',
+    message: 'Êtes-vous sûr de vouloir supprimer cette campagne ? Toutes les données associées seront perdues.',
+    confirmText: 'Supprimer',
+    type: 'danger'
+  })
+
+  if (confirm) {
     try {
       await admin.deleteCampaign(id)
+      
+      // Refresh the list after deletion (Fetch all for admin)
+      await admin.fetchCampaigns({ limit: 100 })
+      ui.success('Campagne supprimée avec succès')
     } catch (error) {
       console.error('Erreur:', error)
-      alert('Erreur de suppression')
+      ui.error('Erreur de suppression')
     }
   }
 }
@@ -402,16 +534,23 @@ const resetFilters = () => {
   filters.animalType = ''
 }
 
+const openDetailsModal = (campaign) => {
+  selectedCampaign.value = campaign
+  showDetailsModal.value = true
+}
+
+const closeDetailsModal = () => {
+  showDetailsModal.value = false
+  selectedCampaign.value = null
+}
+
+const editFromDetails = (campaign) => {
+  closeDetailsModal()
+  openEditModal(campaign)
+}
+
 // Init
 onMounted(async () => {
-  const farmId = sessionStorage.getItem('currentFarm')
-  if (farmId) {
-    await admin.fetchCampaigns({ farm: farmId })
-  } else {
-    // Utiliser une ferme par défaut pour le test
-    console.warn('Aucune ferme sélectionnée, utilisation d\'une ferme par défaut')
-    sessionStorage.setItem('currentFarm', '507f1f77bcf86cd799439011') // ID par défaut
-    await admin.fetchCampaigns({ farm: '507f1f77bcf86cd799439011' })
-  }
+  await admin.fetchCampaigns({ limit: 100 })
 })
 </script>

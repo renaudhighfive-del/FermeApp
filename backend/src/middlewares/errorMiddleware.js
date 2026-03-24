@@ -1,13 +1,16 @@
 // middlewares/errorMiddleware.js
 export function errorHandler(err, req, res, next) {
-  console.error(err)
+  console.error('[ERROR]:', err)
 
-  const status = err.statusCode || 500
+  // Si les headers ont déjà été envoyés, ne rien faire
+  if (res.headersSent) {
+    return next(err)
+  }
+
+  const status = err.statusCode || err.status || 500
   const message = err.message || 'Internal Server Error'
 
-  if (res.headersSent) return next(err)
-
-  return res.status(status).json({
-    error: { message }
+  res.status(status).json({
+    error: message
   })
 }

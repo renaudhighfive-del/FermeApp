@@ -1,56 +1,572 @@
 <template>
-<div>
-  <div class="page-header">
-    <div class="page-header-row">
-      <div><h1 class="page-title">Gestion Stock global</h1><p class="page-subtitle">Suivi des intrants et fournitures</p></div>
-      <div class="page-actions">
-        <button class="btn btn-primary">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Ajouter produit
-        </button>
+  <div class="space-y-6 p-6">
+    <!-- Modal Ajouter Produit -->
+    <div v-if="showAddModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-lg p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold">Ajouter un produit</h2>
+          <button @click="closeAddModal" class="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+        </div>
+        <form @submit.prevent="submitAddProduct" class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
+              <input v-model="addForm.name" type="text" required class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Catégorie *</label>
+              <select v-model="addForm.category" required class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Sélectionner</option>
+                <option value="Aliment">Aliment</option>
+                <option value="Médicament">Médicament</option>
+                <option value="Équipement">Équipement</option>
+                <option value="Autre">Autre</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Quantité *</label>
+              <input v-model.number="addForm.quantity" type="number" required min="0" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Seuil alerte *</label>
+              <input v-model.number="addForm.reorderLevel" type="number" required min="0" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Prix unitaire (FCFA) *</label>
+              <input v-model.number="addForm.unitPrice" type="number" required min="0" step="0.01" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Fournisseur</label>
+              <input v-model="addForm.supplier" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+          </div>
+          <div class="flex justify-end gap-2 pt-6 border-t mt-6">
+            <button type="button" @click="closeAddModal" class="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg">
+              Annuler
+            </button>
+            <button type="submit" :disabled="isSubmitting" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg">
+              {{ isSubmitting ? 'Ajout en cours...' : 'Ajouter' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+      <div>
+        <h1 class="text-3xl font-bold">Gestion Stock Global</h1>
+        <p class="text-slate-600">{{ products.length }} produit(s) - {{ stocksAlerts.length }} alerte(s)</p>
+      </div>
+      <button 
+        @click="showAddModal = true"
+        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg flex items-center gap-2"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        Ajouter produit
+      </button>
+    </div>
+
+    <!-- KPIs -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="bg-white p-6 rounded-lg shadow">
+        <div class="text-sm text-gray-600 mb-2">Stock total</div>
+        <div class="text-3xl font-bold">{{ products.length }}</div>
+        <div class="text-xs text-gray-500">références produits</div>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow">
+        <div class="text-sm text-gray-600 mb-2">Alertes stock faible</div>
+        <div class="text-3xl font-bold text-red-600">{{ stocksAlerts.length }}</div>
+        <div class="text-xs text-gray-500">produits sous seuil</div>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow">
+        <div class="text-sm text-gray-600 mb-2">Valeur totale</div>
+        <div class="text-3xl font-bold">{{ (totalStockValue / 1000000).toFixed(1) }}M</div>
+        <div class="text-xs text-gray-500">FCFA</div>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow">
+        <div class="text-sm text-gray-600 mb-2">Catégories</div>
+        <div class="text-3xl font-bold">{{ categories.length }}</div>
+        <div class="text-xs text-gray-500">catégories</div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white p-4 rounded-lg shadow space-y-3">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <input 
+            v-model="filters.search" 
+            placeholder="Rechercher un produit..."
+            class="w-full px-3 py-2 border rounded"
+          />
+        </div>
+        <select v-model="filters.category" class="px-3 py-2 border rounded">
+          <option value="">Toutes catégories</option>
+          <option value="Aliment">Aliment</option>
+          <option value="Médicament">Médicament</option>
+          <option value="Équipement">Équipement</option>
+          <option value="Autre">Autre</option>
+        </select>
+      </div>
+      <button 
+        @click="resetFilters"
+        class="text-blue-600 hover:text-blue-800 text-sm font-medium"
+      >
+        Réinitialiser filtres
+      </button>
+    </div>
+
+    <!-- Loading State -->
+    <div v-if="admin.loading" class="flex justify-center items-center py-12">
+      <div class="text-slate-600">
+        <div class="inline-block animate-spin mr-2">⟳</div>
+        Chargement...
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="admin.error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+      {{ admin.error }}
+    </div>
+
+    <!-- Table -->
+    <div v-else class="bg-white rounded-lg shadow overflow-hidden">
+      <div v-if="filteredProducts.length > 0" class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Produit</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Catégorie</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Quantité</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Seuil</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Fournisseur</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Valeur</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Statut</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y">
+            <tr v-for="product in filteredProducts" :key="product._id" class="hover:bg-gray-50">
+              <td class="px-6 py-4 font-medium">{{ product.name }}</td>
+              <td class="px-6 py-4 text-sm">{{ product.category }}</td>
+              <td class="px-6 py-4 text-sm" :class="{ 'text-red-600 font-bold': isLowStock(product) }">
+                {{ product.quantity }}
+              </td>
+              <td class="px-6 py-4 text-sm text-gray-600">{{ product.reorderLevel }}</td>
+              <td class="px-6 py-4 text-sm text-gray-600">{{ product.supplier || 'N/A' }}</td>
+              <td class="px-6 py-4 text-sm font-medium">{{ (product.totalValue / 1000).toFixed(0) }}K FCFA</td>
+              <td class="px-6 py-4">
+                <span 
+                  :class="isLowStock(product) ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'"
+                  class="px-3 py-1 rounded-full text-sm font-medium inline-block"
+                >
+                  {{ isLowStock(product) ? 'Stock faible' : 'Normal' }}
+                </span>
+              </td>
+              <td class="px-6 py-4">
+                <div class="flex gap-2 flex-wrap">
+                  <button 
+                    @click="openDetailsModal(product)"
+                    class="text-green-600 hover:text-green-800 text-sm font-medium"
+                  >
+                    Voir
+                  </button>
+                  <button 
+                    @click="openEditModal(product)"
+                    class="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
+                    Modifier
+                  </button>
+                  <button 
+                    @click="openOrderModal(product)"
+                    class="text-orange-600 hover:text-orange-800 text-sm font-medium"
+                  >
+                    Commander
+                  </button>
+                  <button 
+                    @click="deleteProduct(product._id)"
+                    class="text-red-600 hover:text-red-800 text-sm font-medium"
+                  >
+                    Supprimer
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div v-else class="p-12 text-center">
+        <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+        </svg>
+        <h3 class="mt-2 text-lg font-medium text-gray-900">Aucun produit</h3>
+        <p class="mt-1 text-gray-500">Aucun produit ne correspond aux filtres</p>
+      </div>
+    </div>
+
+    <!-- Modal Détails Produit -->
+    <div v-if="showDetailsModal && selectedProduct" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-lg p-8 w-full max-w-2xl max-h-96 overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold">Détails Produit</h2>
+          <button @click="closeDetailsModal" class="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-6">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Nom</label>
+            <p class="text-gray-900 font-medium">{{ selectedProduct.name }}</p>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">SKU</label>
+            <p class="text-gray-900">{{ selectedProduct.sku || 'N/A' }}</p>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Catégorie</label>
+            <p class="text-gray-900">{{ selectedProduct.category }}</p>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Fournisseur</label>
+            <p class="text-gray-900">{{ selectedProduct.supplier || 'N/A' }}</p>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Quantité</label>
+            <p class="text-gray-900 font-medium" :class="{ 'text-red-600': isLowStock(selectedProduct) }">
+              {{ selectedProduct.quantity }}
+            </p>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Seuil d'alerte</label>
+            <p class="text-gray-900">{{ selectedProduct.reorderLevel }}</p>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Prix unitaire</label>
+            <p class="text-gray-900">{{ selectedProduct.unitPrice.toLocaleString() }} FCFA</p>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Valeur totale</label>
+            <p class="text-gray-900 font-bold">{{ (selectedProduct.totalValue / 1000).toFixed(0) }}K FCFA</p>
+          </div>
+          <div v-if="selectedProduct.expiryDate" class="col-span-2">
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Date d'expiration</label>
+            <p class="text-gray-900">{{ new Date(selectedProduct.expiryDate).toLocaleDateString('fr-FR') }}</p>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-6 border-t mt-6">
+          <button @click="closeDetailsModal" class="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg">
+            Fermer
+          </button>
+          <button @click="openEditModal(selectedProduct)" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+            Modifier
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Modifier Produit -->
+    <div v-if="showEditModal && selectedProduct" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-lg p-8 w-full max-w-2xl max-h-96 overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold">Modifier Produit</h2>
+          <button @click="closeEditModal" class="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+        </div>
+
+        <form @submit.prevent="submitEditProduct" class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
+              <input v-model="editForm.name" type="text" required class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Quantité *</label>
+              <input v-model.number="editForm.quantity" type="number" required min="0" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Seuil alerte *</label>
+              <input v-model.number="editForm.reorderLevel" type="number" required min="0" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Prix unitaire *</label>
+              <input v-model.number="editForm.unitPrice" type="number" required min="0" step="0.01" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div class="col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Fournisseur</label>
+              <input v-model="editForm.supplier" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-6 border-t mt-6">
+            <button type="button" @click="closeEditModal" class="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg">
+              Annuler
+            </button>
+            <button type="submit" :disabled="isSubmitting" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg">
+              {{ isSubmitting ? 'Mise à jour...' : 'Mettre à jour' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal Commander -->
+    <div v-if="showOrderModal && selectedProduct" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold">Commander {{ selectedProduct.name }}</h2>
+          <button @click="closeOrderModal" class="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+        </div>
+
+        <form @submit.prevent="submitOrder" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Quantité à commander *</label>
+            <input v-model.number="orderForm.quantity" type="number" required min="1" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <div class="flex justify-between mb-2">
+              <span class="text-gray-600">Prix unitaire:</span>
+              <span class="font-medium">{{ selectedProduct.unitPrice.toLocaleString() }} FCFA</span>
+            </div>
+            <div class="flex justify-between text-lg font-bold">
+              <span>Montant total:</span>
+              <span>{{ (selectedProduct.unitPrice * (orderForm.quantity || 0)).toLocaleString() }} FCFA</span>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-6 border-t mt-6">
+            <button type="button" @click="closeOrderModal" class="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg">
+              Annuler
+            </button>
+            <button type="submit" :disabled="isSubmitting" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white rounded-lg">
+              {{ isSubmitting ? 'Commande en cours...' : 'Confirmer commande' }}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
-  <div class="kpi-grid mb-gap">
-    <div class="kpi-card"><div class="kpi-top"><div><div class="kpi-label">Stock total</div><div class="kpi-value">248</div><div class="kpi-sub">références produits</div></div><div class="kpi-icon" style="background:#E3EFF5"><svg width="24" height="24" fill="none" stroke="#1A6B8A" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div></div></div>
-    <div class="kpi-card"><div class="kpi-top"><div><div class="kpi-label">Alertes stock faible</div><div class="kpi-value" style="color:var(--danger)">7</div><div class="kpi-sub down">produits sous le seuil</div></div><div class="kpi-icon" style="background:#FDECEA"><svg width="24" height="24" fill="none" stroke="#D62828" stroke-width="1.5" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></div></div></div>
-    <div class="kpi-card"><div class="kpi-top"><div><div class="kpi-label">Valeur totale</div><div class="kpi-value">4 800 000</div><div class="kpi-sub">FCFA</div></div><div class="kpi-icon" style="background:#D4EDDA"><svg width="24" height="24" fill="none" stroke="#2D6A4F" stroke-width="1.5" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 1 0 0 7h5a3.5 3.5 0 1 1 0 7H6"/></svg></div></div></div>
-    <div class="kpi-card"><div class="kpi-top"><div><div class="kpi-label">Commandes en cours</div><div class="kpi-value">3</div><div class="kpi-sub warn">livraison sous 48h</div></div><div class="kpi-icon" style="background:#FFF7ED"><svg width="24" height="24" fill="none" stroke="#E07B39" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div></div></div>
-  </div>
-  <div class="card">
-    <div class="flex items-center justify-between mb-16">
-      <div class="search-wrap">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7A6652" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input class="search-input" placeholder="Rechercher un produit..."/>
-      </div>
-      <select class="filter-select"><option>Toutes catégories</option><option>Aliments</option><option>Médicaments</option><option>Matériel</option></select>
-    </div>
-    <div class="table-wrap">
-      <table class="table">
-        <thead><tr><th>Produit</th><th>Catégorie</th><th>Quantité</th><th>Seuil alerte</th><th>Fournisseur</th><th>Statut</th><th>Actions</th></tr></thead>
-        <tbody>
-          <tr v-for="p in products" :key="p.id">
-            <td class="fw-600">{{ p.name }}</td>
-            <td class="text-soft text-sm">{{ p.cat }}</td>
-            <td :class="p.low ? 'stock-low' : ''">{{ p.qty }}</td>
-            <td class="text-soft">{{ p.seuil }}</td>
-            <td class="text-soft text-sm">{{ p.fournisseur }}</td>
-            <td><span class="badge" :class="p.low ? 'badge-anomalie' : 'badge-encours'">{{ p.low ? 'Stock faible' : 'Normal' }}</span></td>
-            <td><div class="table-actions"><button class="btn btn-outline btn-sm">Modifier</button><button class="btn btn-primary btn-sm">Commander</button></div></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
 </template>
+
 <script setup>
-const products = [
-  { id:1, name:'Granulés poulet démarrage', cat:'Aliments', qty:'20 kg', seuil:'50 kg', fournisseur:'AgroFeed SA', low:true },
-  { id:2, name:'Granulés poulet croissance', cat:'Aliments', qty:'120 kg', seuil:'50 kg', fournisseur:'AgroFeed SA', low:false },
-  { id:3, name:'Vaccin Newcastle', cat:'Médicaments', qty:'5 flacons', seuil:'10 flacons', fournisseur:'VétPharm', low:true },
-  { id:4, name:'Vaccin Marek', cat:'Médicaments', qty:'15 flacons', seuil:'5 flacons', fournisseur:'VétPharm', low:false },
-  { id:5, name:'Antibiotique Amoxicilline', cat:'Médicaments', qty:'2 boîtes', seuil:'5 boîtes', fournisseur:'MedAnim', low:true },
-  { id:6, name:'Aliment tilapia granulé', cat:'Aliments', qty:'80 kg', seuil:'30 kg', fournisseur:'AquaFeed', low:false },
-]
+import { ref, computed, reactive, onMounted } from 'vue'
+import { useAdminStore } from '@/stores/admin'
+import { useUiStore } from '@/stores/ui'
+
+const admin = useAdminStore()
+const ui = useUiStore()
+const showDetailsModal = ref(false)
+const showEditModal = ref(false)
+const showOrderModal = ref(false)
+const showAddModal = ref(false)
+const selectedProduct = ref(null)
+const isSubmitting = ref(false)
+
+// Filters
+const filters = reactive({
+  search: '',
+  category: ''
+})
+
+// Forms
+const editForm = reactive({
+  name: '',
+  quantity: 0,
+  reorderLevel: 0,
+  unitPrice: 0,
+  supplier: ''
+})
+
+const orderForm = reactive({
+  quantity: 1
+})
+
+// Formulaire d'ajout
+const addForm = reactive({
+  name: '',
+  category: '',
+  quantity: 0,
+  reorderLevel: 10,
+  unitPrice: 0,
+  supplier: ''
+})
+
+// Computed
+const products = computed(() => admin.products)
+
+const categories = computed(() => {
+  const cats = new Set(admin.products.map(p => p.category))
+  return Array.from(cats)
+})
+
+const stocksAlerts = computed(() => 
+  admin.products.filter(p => isLowStock(p))
+)
+
+const totalStockValue = computed(() =>
+  admin.products.reduce((sum, p) => sum + (p.totalValue || 0), 0)
+)
+
+const filteredProducts = computed(() => {
+  return admin.products.filter(product => {
+    const matchSearch = product.name?.toLowerCase().includes(filters.search.toLowerCase()) || false
+    const matchCategory = !filters.category || product.category === filters.category
+    return matchSearch && matchCategory
+  })
+})
+
+// Methods
+const isLowStock = (product) => {
+  return product.quantity <= product.reorderLevel
+}
+
+const resetFilters = () => {
+  filters.search = ''
+  filters.category = ''
+}
+
+const openDetailsModal = (product) => {
+  selectedProduct.value = product
+  showDetailsModal.value = true
+}
+
+const closeDetailsModal = () => {
+  showDetailsModal.value = false
+  selectedProduct.value = null
+}
+
+const openEditModal = (product) => {
+  selectedProduct.value = product
+  editForm.name = product.name
+  editForm.quantity = product.quantity
+  editForm.reorderLevel = product.reorderLevel
+  editForm.unitPrice = product.unitPrice
+  editForm.supplier = product.supplier || ''
+  showDetailsModal.value = false
+  showEditModal.value = true
+}
+
+const closeEditModal = () => {
+  showEditModal.value = false
+  selectedProduct.value = null
+}
+
+const submitEditProduct = async () => {
+  try {
+    isSubmitting.value = true
+    await admin.updateProduct(selectedProduct.value._id, {
+      name: editForm.name,
+      quantity: editForm.quantity,
+      reorderLevel: editForm.reorderLevel,
+      unitPrice: editForm.unitPrice,
+      supplier: editForm.supplier
+    })
+    closeEditModal()
+    ui.success('Produit mis à jour avec succès')
+  } catch (error) {
+    console.error('Erreur:', error)
+    ui.error('Erreur: ' + (error.message || 'Impossible de modifier le produit'))
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+const openOrderModal = (product) => {
+  selectedProduct.value = product
+  orderForm.quantity = 1
+  showOrderModal.value = true
+}
+
+const closeOrderModal = () => {
+  showOrderModal.value = false
+  selectedProduct.value = null
+}
+
+const closeAddModal = () => {
+  showAddModal.value = false
+  resetAddForm()
+}
+
+const resetAddForm = () => {
+  addForm.name = ''
+  addForm.category = ''
+  addForm.quantity = 0
+  addForm.reorderLevel = 10
+  addForm.unitPrice = 0
+  addForm.supplier = ''
+}
+
+const submitAddProduct = async () => {
+  try {
+    isSubmitting.value = true
+    // Récupérer la ferme courante
+    let farmId = sessionStorage.getItem('currentFarm')
+    if (!farmId) {
+      // fallback par défaut si jamais
+      farmId = '507f1f77bcf86cd799439011'
+    }
+    const payload = {
+      ...addForm,
+      farm: farmId
+    }
+    await admin.addProduct(payload)
+    closeAddModal()
+    // Rafraîchir la liste
+    await admin.fetchProducts({})
+    ui.success('Produit ajouté avec succès !')
+  } catch (error) {
+    console.error('Erreur:', error)
+    ui.error('Erreur: ' + (error.message || 'Impossible d\'ajouter le produit'))
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+const submitOrder = async () => {
+  try {
+    isSubmitting.value = true
+    const newQuantity = selectedProduct.value.quantity + orderForm.quantity
+    await admin.updateProduct(selectedProduct.value._id, {
+      quantity: newQuantity
+    })
+    closeOrderModal()
+    ui.success('Commande confirmée! Quantité mise à jour.')
+  } catch (error) {
+    console.error('Erreur:', error)
+    ui.error('Erreur: ' + (error.message || 'Impossible de confirmer la commande'))
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+const deleteProduct = async (productId) => {
+  const confirm = await ui.confirm({
+    title: 'Supprimer le produit',
+    message: 'Êtes-vous sûr de vouloir supprimer ce produit du stock ? Toutes les données associées seront perdues.',
+    confirmText: 'Supprimer',
+    type: 'danger',
+  })
+
+  if (confirm) {
+    try {
+      await admin.deleteProduct(productId)
+      ui.success('Produit supprimé du stock')
+    } catch (error) {
+      console.error('Erreur:', error)
+      ui.error('Erreur de suppression')
+    }
+  }
+}
+
+// Init
+onMounted(async () => {
+  // Fetch all products without farm filter to debug
+  try {
+    const result = await admin.fetchProducts({})
+  } catch (error) {
+    console.error('❌ Error fetching products:', error)
+  }
+})
 </script>
