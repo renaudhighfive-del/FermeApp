@@ -1,33 +1,47 @@
 <template>
 <div>
+  <!-- Loading State -->
+  <div v-if="loading" class="card" style="text-align: center; padding: 40px;">
+    <p class="text-soft">Chargement de la campagne...</p>
+  </div>
+
+  <!-- Error State -->
+  <div v-else-if="error" class="alert-card alert-danger mb-gap">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    <div class="alert-content">
+      <div class="alert-desc">{{ error }}</div>
+    </div>
+  </div>
+
   <!-- Header -->
-  <div class="card mb-gap">
+  <div v-else-if="campaign" class="card mb-gap">
     <div class="flex items-start justify-between mb-16">
       <div>
         <div class="flex items-center gap-12 mb-8">
-          <h1 class="page-title" style="margin-bottom:0">Campagne Mars 2026</h1>
-          <span class="badge badge-vol">Volaille</span>
-          <span class="badge badge-encours">En cours</span>
+          <h1 class="page-title" style="margin-bottom:0">{{ campaign.name }}</h1>
+          <span class="badge" :class="getAnimalTypeClass(campaign.animalType)">{{ campaign.animalType }}</span>
+          <span class="badge" :class="getStatusClass(campaign.status)">{{ campaign.status }}</span>
         </div>
-        <p class="page-subtitle">Démarré le 01/03/2026 · Durée estimée 45 jours · Lot A, B, C</p>
+        <p class="page-subtitle">Démarré le {{ formatDate(campaign.startDate) }} · {{ getDaysRemaining(campaign.startDate) }} jours</p>
       </div>
       <div class="page-actions">
+        <button class="btn btn-outline btn-sm" @click="showCreateAnimalModal = true"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Ajouter animal</button>
         <button class="btn btn-outline btn-sm"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Modifier</button>
-        <button class="btn btn-primary btn-sm"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exporter PDF</button>
+        <button class="btn btn-primary btn-sm" @click="downloadReport"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exporter PDF</button>
       </div>
     </div>
     <div class="grid-3" style="margin-bottom:0">
       <div style="text-align:center;padding:16px;background:var(--bg);border-radius:10px">
         <div style="font-size:11px;color:var(--soft);margin-bottom:4px">EFFECTIF INITIAL</div>
-        <div style="font-family:var(--font-display);font-size:28px">500</div>
+        <div style="font-family:var(--font-display);font-size:28px">{{ campaign.initialAnimalCount }}</div>
       </div>
       <div style="text-align:center;padding:16px;background:#D4EDDA;border-radius:10px">
         <div style="font-size:11px;color:var(--soft);margin-bottom:4px">EFFECTIF ACTUEL</div>
-        <div style="font-family:var(--font-display);font-size:28px;color:var(--success)">480</div>
+        <div style="font-family:var(--font-display);font-size:28px;color:var(--success)">{{ campaign.currentAnimalCount }}</div>
       </div>
       <div style="text-align:center;padding:16px;background:#FDECEA;border-radius:10px">
         <div style="font-size:11px;color:var(--soft);margin-bottom:4px">PERTES</div>
-        <div style="font-family:var(--font-display);font-size:28px;color:var(--danger)">20</div>
+        <div style="font-family:var(--font-display);font-size:28px;color:var(--danger)">{{ campaign.deaths }}</div>
       </div>
     </div>
   </div>
@@ -100,9 +114,9 @@
     <div class="flex items-center justify-between mb-gap">
       <div class="search-wrap">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7A6652" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input class="search-input" placeholder="Rechercher par ID..."/>
+        <input class="search-input" placeholder="Rechercher par ID..." v-model="animalSearch"/>
       </div>
-      <button class="btn btn-primary btn-sm">
+      <button class="btn btn-primary btn-sm" @click="showCreateAnimalModal = true">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Ajouter animal
       </button>
@@ -110,19 +124,22 @@
     <div class="card">
       <div class="table-wrap">
         <table class="table">
-          <thead><tr><th>ID</th><th>Date éclosion</th><th>Poids</th><th>Santé</th><th>Vaccins</th><th>QR Code</th><th>Actions</th></tr></thead>
+          <thead><tr><th>ID Animal</th><th>Location</th><th>Poids</th><th>Santé</th><th>Vaccins</th><th>QR Code</th><th>Actions</th></tr></thead>
           <tbody>
-            <tr v-for="a in animals" :key="a.id" @click="goAnimal(a.id)">
-              <td class="fw-600" style="color:var(--primary)">{{ a.id }}</td>
-              <td class="text-soft text-sm">{{ a.eclosion }}</td>
-              <td>{{ a.weight }}</td>
-              <td><span class="badge" :class="a.healthClass">{{ a.health }}</span></td>
-              <td>{{ a.vaccines }}</td>
-              <td><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--soft)" stroke-width="1.5"><rect x="2" y="2" width="5" height="5"/><rect x="17" y="2" width="5" height="5"/><rect x="2" y="17" width="5" height="5"/><path d="M10 2h1v1h-1zm2 0h1v1h-1z"/><path d="M2 10h1v1H2zm0 2h1v1H2z"/></svg></td>
-              <td><button class="btn btn-outline btn-sm"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></td>
+            <tr v-for="animal in filteredAnimals" :key="animal._id || animal.id">
+              <td class="fw-600" style="color:var(--primary)">{{ animal.idNumber || animal._id }}</td>
+              <td class="text-soft text-sm">{{ animal.location || '-' }}</td>
+              <td>{{ animal.weight ? animal.weight.toFixed(2) : '-' }} kg</td>
+              <td><span class="badge" :class="getHealthClass(animal.healthStatus)">{{ animal.healthStatus || 'Inconnu' }}</span></td>
+              <td>{{ animal.vaccinations?.length || 0 }}/4</td>
+              <td><button class="btn btn-outline btn-sm" @click="showQRCode(animal)">QR</button></td>
+              <td><button class="btn btn-outline btn-sm" @click="viewAnimalFiche(animal)">Voir fiche</button></td>
             </tr>
           </tbody>
         </table>
+      </div>
+      <div v-if="filteredAnimals.length === 0" class="text-center p-20">
+        <p class="text-soft">Aucun animal trouvé</p>
       </div>
     </div>
   </div>
@@ -211,19 +228,274 @@
     <svg width="22" height="22" fill="none" stroke="var(--primary)" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   </button>
   <div class="fab-label">Ajouter événement</div>
+
+  <!-- Modal Création Animal -->
+  <div v-if="showCreateAnimalModal" class="modal-overlay" @click="showCreateAnimalModal = false">
+    <div class="modal" @click.stop>
+      <div class="modal-header">
+        <h3>Ajouter un animal</h3>
+        <button class="modal-close" @click="showCreateAnimalModal = false">×</button>
+      </div>
+      <div class="modal-body">
+        <form @submit.prevent="createAnimal">
+          <div class="form-group">
+            <label>ID Animal *</label>
+            <input v-model="newAnimal.idNumber" type="text" required placeholder="Ex: VOL001">
+          </div>
+          <div class="form-group">
+            <label>Type *</label>
+            <select v-model="newAnimal.type" required>
+              <option value="">Sélectionner un type</option>
+              <option value="Volaille">Volaille</option>
+              <option value="Bétail">Bétail</option>
+              <option value="Pisciculture">Pisciculture</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Race</label>
+            <input v-model="newAnimal.breed" type="text" placeholder="Ex: Rhode Island">
+          </div>
+          <div class="form-group">
+            <label>Poids (kg)</label>
+            <input v-model.number="newAnimal.weight" type="number" step="0.01" placeholder="Ex: 2.5">
+          </div>
+          <div class="form-group">
+            <label>Statut santé</label>
+            <select v-model="newAnimal.healthStatus">
+              <option value="Sain">Sain</option>
+              <option value="Suspect">Suspect</option>
+              <option value="Malade">Malade</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Location</label>
+            <input v-model="newAnimal.location" type="text" placeholder="Ex: Lot A">
+          </div>
+          <div class="form-group">
+            <label>Date de naissance</label>
+            <input v-model="newAnimal.birthDate" type="date">
+          </div>
+          <div class="form-group">
+            <label>Notes</label>
+            <textarea v-model="newAnimal.notes" placeholder="Notes supplémentaires"></textarea>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-outline" @click="showCreateAnimalModal = false">Annuler</button>
+            <button type="submit" class="btn btn-primary">Créer l'animal</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal QR Code -->
+  <div v-if="showQRModal" class="modal-overlay" @click="showQRModal = false">
+    <div class="modal" @click.stop>
+      <div class="modal-header">
+        <h3>QR Code - {{ selectedAnimal?.idNumber }}</h3>
+        <button class="modal-close" @click="showQRModal = false">×</button>
+      </div>
+      <div class="modal-body text-center">
+        <img :src="generateQRCode(selectedAnimal?.idNumber || selectedAnimal?._id)" alt="QR Code" style="max-width: 200px;">
+        <p class="text-soft mt-16">Scannez ce QR code pour accéder à la fiche de l'animal</p>
+        <button class="btn btn-primary mt-16" @click="viewAnimalFiche(selectedAnimal)">Voir la fiche complète</button>
+      </div>
+    </div>
+  </div>
 </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useGerantStore } from '@/stores/gerant'
+import { campaignService, animalService } from '@/services/api'
+
 const router = useRouter()
+const route = useRoute()
+const gerantStore = useGerantStore()
+
+const campaign = ref(null)
+const animals = ref([])
+const loading = ref(false)
+const error = ref(null)
 const activeTab = ref('overview')
-const animals = [
-  { id:'#VOL-001', eclosion:'01/03/2026', weight:'1.35 kg', health:'Sain',     healthClass:'badge-sain',    vaccines:'3/4' },
-  { id:'#VOL-002', eclosion:'01/03/2026', weight:'0.95 kg', health:'Anomalie', healthClass:'badge-anomalie', vaccines:'2/4' },
-  { id:'#VOL-003', eclosion:'01/03/2026', weight:'1.28 kg', health:'Sain',     healthClass:'badge-sain',    vaccines:'3/4' },
-  { id:'#VOL-047', eclosion:'01/03/2026', weight:'1.42 kg', health:'Sain',     healthClass:'badge-sain',    vaccines:'4/4' },
-]
-function goAnimal(id) { router.push('/agent/animal/'+id.replace('#','')) }
+const animalSearch = ref('')
+const showCreateAnimalModal = ref(false)
+const selectedAnimal = ref(null)
+const showQRModal = ref(false)
+
+// Données du formulaire de création d'animal
+const newAnimal = ref({
+  idNumber: '',
+  type: '',
+  breed: '',
+  weight: null,
+  healthStatus: 'Sain',
+  location: '',
+  birthDate: '',
+  notes: ''
+})
+
+onMounted(async () => {
+  await loadCampaignData()
+})
+
+async function loadCampaignData() {
+  loading.value = true
+  error.value = null
+  
+  try {
+    const campaignId = route.params.id
+    
+    // Charger la campagne
+    const campaignRes = await campaignService.getById(campaignId)
+    campaign.value = campaignRes.data
+    
+    // Charger les animaux de la campagne
+    const animalsRes = await animalService.getAll({ campaign: campaignId, limit: 100 })
+    animals.value = animalsRes.data.animals || animalsRes.data || []
+  } catch (err) {
+    error.value = 'Erreur lors du chargement de la campagne'
+    console.error(err)
+  } finally {
+    loading.value = false
+  }
+}
+
+function formatDate(date) {
+  if (!date) return '-'
+  const d = new Date(date)
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
+}
+
+function getDaysRemaining(startDate) {
+  if (!startDate) return 0
+  const start = new Date(startDate)
+  const today = new Date()
+  const diffTime = today.getTime() - start.getTime()
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  return Math.max(0, diffDays)
+}
+
+function getAnimalTypeClass(animalType) {
+  const classes = {
+    'Volaille': 'badge-vol',
+    'Bétail': 'badge-bet',
+    'Pisciculture': 'badge-pis'
+  }
+  return classes[animalType] || ''
+}
+
+function getStatusClass(status) {
+  const classes = {
+    'En cours': 'badge-encours',
+    'Terminée': 'badge-terminee',
+    'Préparation': 'badge-prep'
+  }
+  return classes[status] || ''
+}
+
+function goAnimal(id) {
+  router.push('/agent/animal/' + id.replace('#',''))
+}
+
+// Computed properties
+const filteredAnimals = computed(() => {
+  if (!animalSearch.value) return animals.value
+  return animals.value.filter(animal => 
+    animal.idNumber?.toLowerCase().includes(animalSearch.value.toLowerCase()) ||
+    animal._id?.toLowerCase().includes(animalSearch.value.toLowerCase())
+  )
+})
+
+// Nouvelles fonctions
+function getHealthClass(status) {
+  const classes = {
+    'Sain': 'badge-success',
+    'Malade': 'badge-danger',
+    'Suspect': 'badge-warning',
+    'Inconnu': 'badge-secondary'
+  }
+  return classes[status] || 'badge-secondary'
+}
+
+async function createAnimal() {
+  try {
+    const animalData = {
+      ...newAnimal.value,
+      campaign: campaign.value._id,
+      farm: campaign.value.farm._id
+    }
+    
+    const response = await animalService.create(animalData)
+    animals.value.push(response.data)
+    
+    // Reset form
+    newAnimal.value = {
+      idNumber: '',
+      type: campaign.value.animalType || '',
+      breed: '',
+      weight: null,
+      healthStatus: 'Sain',
+      location: '',
+      birthDate: '',
+      notes: ''
+    }
+    
+    showCreateAnimalModal.value = false
+  } catch (err) {
+    console.error('Erreur lors de la création de l\'animal:', err)
+    alert('Erreur lors de la création de l\'animal')
+  }
+}
+
+function showQRCode(animal) {
+  selectedAnimal.value = animal
+  showQRModal.value = true
+}
+
+function viewAnimalFiche(animal) {
+  router.push(`/gerant/animal/${animal._id}`)
+}
+
+function generateQRCode(text) {
+  // Cette fonction sera implémentée avec une bibliothèque QR code
+  return `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(text)}`
+}
+
+function downloadReport() {
+  // Pour l'instant, on utilise une solution simple
+  // Plus tard, on pourra intégrer html2pdf ou jspdf
+  const reportData = {
+    campaign: campaign.value,
+    animals: animals.value,
+    date: new Date().toLocaleDateString('fr-FR')
+  }
+  
+  const reportText = `
+RAPPORT DE CAMPAGNE
+===================
+
+Campagne: ${reportData.campaign.name}
+Type: ${reportData.campaign.animalType}
+Statut: ${reportData.campaign.status}
+Nombre d'animaux: ${reportData.animals.length}
+
+Animaux:
+${reportData.animals.map(a => `- ${a.idNumber}: ${a.healthStatus} (${a.weight || 0}kg)`).join('\n')}
+
+Généré le: ${reportData.date}
+  `
+  
+  const blob = new Blob([reportText], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `Rapport_${reportData.campaign.name}_${reportData.date.replace(/\//g, '-')}.txt`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
 </script>
