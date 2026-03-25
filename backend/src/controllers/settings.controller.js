@@ -34,55 +34,36 @@ export const updateSettings = async (req, res) => {
 
 export const getDashboardStats = async (req, res, next) => {
   try {
-    let { farm } = req.query;
+    const isAdmin = req.user?.role === 'admin';
+    let matchQuery = {};
 
-    // Si pas de farm en paramètre, utiliser la première farm de l'utilisateur
-    if (!farm) {
-      const farms = await mongoose.model("Farm").find().limit(1);
-      if (farms.length === 0) {
-        return res.json({
-          activeCampaigns: 0,
-          totalAnimals: 0,
-          deadAnimals: 0,
-          mortality: 0,
-          totalRevenue: 0,
-        });
+    if (!isAdmin) {
+      let { farm } = req.query;
+      if (!farm) {
+        const farms = await mongoose.model("Farm").find().limit(1);
+        if (farms.length > 0) {
+          farm = farms[0]._id;
+        } else {
+          return res.json({ activeCampaigns: 0, totalAnimals: 0, deadAnimals: 0, mortality: 0, totalRevenue: 0 });
+        }
       }
-      farm = farms[0]._id;
+      const farmId = new mongoose.Types.ObjectId(farm);
+      matchQuery = { farm: farmId };
     }
-
-    const farmId = new mongoose.Types.ObjectId(farm);
 
     // Compter les campagnes actives
     const activeCampaigns = await Campaign.countDocuments({
-      farm: farmId,
+      ...matchQuery,
       status: "En cours",
     });
 
-    // Obtenir toutes les campagnes pour cette farm
-    const campaigns = await Campaign.find({ farm: farmId }).select("_id");
+    // Obtenir toutes les campagnes pour cette farm (ou toutes pour l'admin)
+    const campaigns = await Campaign.find(matchQuery).select("_id");
     const campaignIds = campaigns.map((c) => c._id);
 
-    // Compter les animaux - soit par campaign, soit tous les animaux si pas de campaign
-    let totalAnimals = 0;
-    let deadAnimals = 0;
-
-    if (campaignIds.length > 0) {
-      totalAnimals = await Animal.countDocuments({
-        campaign: { $in: campaignIds },
-      });
-
-      deadAnimals = await Animal.countDocuments({
-        campaign: { $in: campaignIds },
-        healthStatus: "Décédé",
-      });
-    } else {
-      // Si pas de campaign, compter tous les animaux
-      totalAnimals = await Animal.countDocuments({});
-      deadAnimals = await Animal.countDocuments({
-        healthStatus: "Décédé",
-      });
-    }
+    // Compter les animaux
+    const totalAnimals = await Animal.countDocuments(isAdmin ? {} : { campaign: { $in: campaignIds } });
+    const deadAnimals = await Animal.countDocuments(isAdmin ? {} : { campaign: { $in: campaignIds }, healthStatus: "Décédé" });
 
     const mortality =
       totalAnimals > 0 ? ((deadAnimals / totalAnimals) * 100).toFixed(2) : 0;
@@ -90,21 +71,10 @@ export const getDashboardStats = async (req, res, next) => {
     // Compter les revenus
     const revenue = await Transaction.aggregate([
       {
-        $match: {
-          farm: farmId,
-          type: "Revenu",
-        },
+        $match: { ...matchQuery, type: "Revenu" },
       },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]);
-
-    console.log("[DASHBOARD STATS]", {
-      farm: farmId,
-      campaigns: campaignIds.length,
-      totalAnimals,
-      deadAnimals,
-      mortality,
-    });
 
     res.json({
       activeCampaigns,

@@ -18,6 +18,7 @@ const AdminHealth    = () => import('@/views/admin/A8_Health.vue')
 const AdminFarms     = () => import('@/views/admin/A9_Farms.vue')
 const AdminSales     = () => import('@/views/admin/A9_Sales.vue')
 const AdminSettings  = () => import('@/views/admin/A10_Settings.vue')
+const AdminTasks     = () => import('@/views/admin/A12_Tasks.vue')
 
 // ── GÉRANT ────────────────────────────────────────────────────────
 const GerantDashboard  = () => import('@/views/gerant/G1_Dashboard.vue')
@@ -58,6 +59,7 @@ const routes = [
       { path: 'animals',   component: AdminAnimals   },
       { path: 'health',    component: AdminHealth    },
       { path: 'farms',     component: AdminFarms     },
+      { path: 'tasks',     component: AdminTasks     },
       { path: 'sales',     component: AdminSales     },
       { path: 'settings',  component: AdminSettings  },
     ],

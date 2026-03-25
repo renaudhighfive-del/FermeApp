@@ -10,6 +10,7 @@ import {
   saleService,
   reportService,
   settingsService,
+  eventService,
 } from "@/services/api";
 
 export const useAdminStore = defineStore("admin", () => {
@@ -22,6 +23,8 @@ export const useAdminStore = defineStore("admin", () => {
   const alerts = ref([]);
   const sales = ref([]);
   const reports = ref([]);
+  const events = ref([]);
+  const stats = ref(null);
   const loading = ref(false);
   const error = ref(null);
 
@@ -342,6 +345,61 @@ export const useAdminStore = defineStore("admin", () => {
     }
   };
 
+  // Events (Tasks)
+  const fetchEvents = async (filter = {}) => {
+    loading.value = true;
+    try {
+      const response = await eventService.getAll(filter);
+      events.value = response.data.events;
+    } catch (err) {
+      error.value = err.message;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const createEvent = async (data) => {
+    try {
+      const response = await eventService.create(data);
+      events.value.unshift(response.data.event);
+      return response.data.event;
+    } catch (err) {
+      error.value = err.message;
+      throw err;
+    }
+  };
+
+  const updateEvent = async (id, data) => {
+    try {
+      const response = await eventService.update(id, data);
+      const index = events.value.findIndex((e) => e._id === id);
+      if (index !== -1) events.value[index] = response.data.event;
+      return response.data.event;
+    } catch (err) {
+      error.value = err.message;
+      throw err;
+    }
+  };
+
+  const deleteEvent = async (id) => {
+    try {
+      await eventService.delete(id);
+      events.value = events.value.filter((e) => e._id !== id);
+    } catch (err) {
+      error.value = err.message;
+      throw err;
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const response = await settingsService.getDashboardStats();
+      stats.value = response.data;
+    } catch (err) {
+      error.value = err.message;
+    }
+  };
+
   return {
     campaigns,
     farms,
@@ -383,5 +441,12 @@ export const useAdminStore = defineStore("admin", () => {
     addSale,
     fetchReports,
     generateReport,
+    events,
+    fetchEvents,
+    createEvent,
+    updateEvent,
+    deleteEvent,
+    stats,
+    fetchStats,
   };
 });

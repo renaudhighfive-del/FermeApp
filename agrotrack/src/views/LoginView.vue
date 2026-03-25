@@ -70,39 +70,34 @@
 </template>
 
 <script setup>
-import { ref }          from 'vue'
-import { useRouter }    from 'vue-router'
-import { useAuthStore } from '@/stores/auth.js'
+    import { ref }          from 'vue'
+    import { useRouter }    from 'vue-router'
+    import { useAuthStore } from '@/stores/auth.js'
 
-const router     = useRouter()
-const auth       = useAuthStore()
-const email      = ref('')
-const password   = ref('')
-const error      = ref('')
-const chargement = ref(false)
+    const router     = useRouter()
+    const auth       = useAuthStore()
+    const email      = ref('')
+    const password   = ref('')
+    const error      = ref('')
+    const chargement = ref(false)
 
-const dashboardParRole = {
-  admin:  '/admin/dashboard',
-  gerant: '/gerant/dashboard',
-  agent:  '/agent/dashboard',
-}
+    const dashboardParRole = {
+        admin:  '/admin/dashboard',
+        gerant: '/gerant/dashboard',
+        agent:  '/agent/dashboard',
+    }
 
-async function soumettre() {
-  error.value = ''
-
-  if (!email.value || !password.value) {
-    error.value = 'Veuillez remplir tous les champs.'
-    return
-  }
-
-  chargement.value = true
-  try {
-    const role = await auth.login(email.value, password.value)
-    router.push(dashboardParRole[role] || '/login')
-  } catch (err) {
-    error.value = err.response?.data?.message || 'Identifiants incorrects'
-  } finally {
-    chargement.value = false
-  }
-}
+    async function soumettre() {
+        error.value = '';
+        if (!email.value || !password.value) {
+            error.value = 'Veuillez remplir tous les champs.'
+            return
+        }
+        chargement.value = true
+        try {
+            const role = await auth.login(email.value, password.value)
+            router.push(dashboardParRole[role] || '/login')
+        } catch (err) { error.value = err.response?.data?.message || 'Identifiants incorrects'
+        } finally { chargement.value = false }
+    }
 </script>

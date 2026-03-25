@@ -56,6 +56,28 @@ export const useUiStore = defineStore('ui', () => {
     })
   }
 
+  // --- Theme (Light/Dark) ---
+  const theme = ref(localStorage.getItem('theme') || 'light')
+
+  const toggleTheme = () => {
+    theme.value = theme.value === 'light' ? 'dark' : 'light'
+    localStorage.setItem('theme', theme.value)
+    applyTheme()
+  }
+
+  const applyTheme = () => {
+    if (theme.value === 'dark') {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }
+
+  // --- Sidebar Mobile ---
+  const isSidebarOpen = ref(false)
+  const toggleSidebar = () => isSidebarOpen.value = !isSidebarOpen.value
+  const closeSidebar = () => isSidebarOpen.value = false
+
   return {
     notifications,
     addNotification,
@@ -65,6 +87,12 @@ export const useUiStore = defineStore('ui', () => {
     info,
     warning,
     confirmState,
-    confirm
+    confirm,
+    theme,
+    toggleTheme,
+    applyTheme,
+    isSidebarOpen,
+    toggleSidebar,
+    closeSidebar
   }
 })
