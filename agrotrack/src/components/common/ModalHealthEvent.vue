@@ -29,10 +29,9 @@
           <select class="form-input" v-model="form.type">
             <option value="">-- Sélectionner un type --</option>
             <option value="Vaccination">Vaccination</option>
-            <option value="Anomalie">Anomalie</option>
-            <option value="Mortalité">Mortalité</option>
-            <option value="Observation">Observation</option>
             <option value="Traitement">Traitement</option>
+            <option value="Diagnostic">Diagnostic</option>
+            <option value="Observation">Observation</option>
           </select>
         </div>
 
@@ -52,9 +51,9 @@
         <div class="form-group" v-if="form.type === 'Vaccination' || form.type === 'Traitement'">
           <label class="form-label">Statut</label>
           <select class="form-input" v-model="form.status">
-            <option value="Planifié">Planifié</option>
-            <option value="En cours">En cours</option>
-            <option value="Terminé">Terminé</option>
+            <option value="Programmé">Programmé</option>
+            <option value="En attente">En attente</option>
+            <option value="Complété">Complété</option>
           </select>
         </div>
 
@@ -142,8 +141,12 @@ async function create() {
 
   try {
     const eventData = {
-      ...form.value,
-      campaign: props.campaign._id || props.campaign.id
+      animal: form.value.animalId,
+      campaign: props.campaign._id || props.campaign.id,
+      type: form.value.type,
+      description: form.value.description,
+      date: form.value.date,
+      status: form.value.status || 'Complété'
     }
 
     const response = await healthService.create(eventData)
@@ -156,7 +159,7 @@ async function create() {
       type: '',
       date: '',
       description: '',
-      status: 'Terminé'
+      status: 'Complété'
     }
   } catch (err) {
     error.value = err.response?.data?.error || 'Erreur lors de l\'enregistrement de l\'événement'

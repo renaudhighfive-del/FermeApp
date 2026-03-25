@@ -31,23 +31,21 @@
         <thead>
           <tr>
             <th>Date</th>
-            <th>Lot</th>
             <th>Nb vendus</th>
             <th>Prix unitaire</th>
-            <th>Total</th>
+            <th>Total revenus</th>
             <th>Acheteur</th>
-            <th>Paiement</th>
+            <th>Poids</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="sale in sales" :key="sale._id">
-            <td>{{ formatDate(sale.date) }}</td>
-            <td>{{ sale.lot || '-' }}</td>
-            <td>{{ sale.quantity }}</td>
-            <td>{{ formatCurrency(sale.unitPrice) }}</td>
-            <td class="fw-600">{{ formatCurrency(sale.quantity * sale.unitPrice) }}</td>
+          <tr v-for="sale in sales\" :key=\"sale._id\">
+            <td>{{ formatDate(sale.saleDate) }}</td>
+            <td>{{ sale.animalsSold }}</td>
+            <td>{{ formatCurrency(sale.pricePerUnit) }}</td>
+            <td class=\"fw-600\">{{ formatCurrency(sale.totalRevenue) }}</td>
             <td>{{ sale.buyer || '-' }}</td>
-            <td><span :class="getPaymentClass(sale.paymentStatus)">{{ sale.paymentStatus }}</span></td>
+            <td>{{ sale.totalWeight ? sale.totalWeight + ' kg' : '-' }}</td>
           </tr>
         </tbody>
       </table>
@@ -70,15 +68,17 @@
         <button class="modal-close" @click="showModal=false"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
       <div class="grid-2" style="gap:12px">
-        <div class="form-group"><label class="form-label">Date de vente</label><input class="form-input" type="date" v-model="formData.date"/></div>
-        <div class="form-group"><label class="form-label">Lot</label><input class="form-input" v-model="formData.lot" placeholder="Ex: Lot A"/></div>
+        <div class="form-group"><label class="form-label">Date de vente</label><input class="form-input" type="date" v-model="formData.saleDate"/></div>
+        <div class="form-group"><label class="form-label">Nb animaux vendus</label><input class="form-input" type="number" v-model="formData.animalsSold" placeholder="Ex: 100"/></div>
       </div>
       <div class="grid-2" style="gap:12px">
-        <div class="form-group"><label class="form-label">Nb animaux vendus</label><input class="form-input" type="number" v-model="formData.quantity" placeholder="Ex: 100"/></div>
-        <div class="form-group"><label class="form-label">Prix unitaire (FCFA)</label><input class="form-input" type="number" v-model="formData.unitPrice" placeholder="Ex: 2500"/></div>
+        <div class="form-group"><label class="form-label">Prix unitaire (FCFA)</label><input class="form-input" type="number" v-model="formData.pricePerUnit" placeholder="Ex: 2500"/></div>
+        <div class="form-group"><label class="form-label">Poids total (kg)</label><input class="form-input" type="number" v-model="formData.totalWeight" placeholder="Ex: 250"/></div>
       </div>
-      <div class="form-group"><label class="form-label">Acheteur</label><input class="form-input" v-model="formData.buyer" placeholder="Nom de l'acheteur"/></div>
-      <div class="form-group"><label class="form-label">Statut paiement</label><select class="form-select" v-model="formData.paymentStatus"><option value="Encaissé">Encaissé</option><option value="En attente">En attente</option></select></div>
+      <div class="grid-2" style="gap:12px">
+        <div class="form-group"><label class="form-label">Acheteur</label><input class="form-input" v-model="formData.buyer" placeholder="Nom de l'acheteur"/></div>
+      </div>
+      <div class="form-group"><label class="form-label">Notes</label><textarea class="form-input" v-model="formData.notes" placeholder="Notes supplémentaires"></textarea></div>
       <div class="modal-footer">
         <button class="btn btn-outline" @click="showModal=false">Annuler</button>
         <button class="btn btn-primary" @click="submitSale" :disabled="isLoading">{{ isLoading ? 'Enregistrement...' : 'Enregistrer' }}</button>
@@ -100,28 +100,26 @@ const isLoading = ref(false)
 const showModal = ref(false)
 
 const formData = ref({
-  date: new Date().toISOString().split('T')[0],
-  lot: '',
-  quantity: '',
-  unitPrice: '',
+  saleDate: new Date().toISOString().split('T')[0],
+  animalsSold: '',
+  pricePerUnit: '',
   buyer: '',
-  paymentStatus: 'Encaissé'
+  totalWeight: '',
+  notes: ''
 })
 
 const totalSold = computed(() => {
-  return sales.value.reduce((sum, sale) => sum + (sale.quantity * sale.unitPrice), 0)
+  return sales.value.reduce((sum, sale) => sum + (sale.totalRevenue || 0), 0)
 })
 
 const collected = computed(() => {
-  return sales.value
-    .filter(s => s.paymentStatus === 'Encaissé')
-    .reduce((sum, sale) => sum + (sale.quantity * sale.unitPrice), 0)
+  // Tous les revenus sont considérés comme encaissés
+  return sales.value.reduce((sum, sale) => sum + (sale.totalRevenue || 0), 0)
 })
 
 const pending = computed(() => {
-  return sales.value
-    .filter(s => s.paymentStatus === 'En attente')
-    .reduce((sum, sale) => sum + (sale.quantity * sale.unitPrice), 0)
+  // Pas de ventes en attente pour le moment
+  return 0
 })
 
 onMounted(async () => {
@@ -136,18 +134,24 @@ onMounted(async () => {
 })
 
 async function submitSale() {
-  if (!campaign.value || !formData.value.quantity || !formData.value.unitPrice) {
+  if (!campaign.value || !formData.value.animalsSold || !formData.value.pricePerUnit) {
     alert('Veuillez remplir tous les champs obligatoires')
     return
   }
   
   try {
     isLoading.value = true
+    const totalRevenue = parseInt(formData.value.animalsSold) * parseFloat(formData.value.pricePerUnit)
     await saleService.create({
       campaign: campaign.value._id,
-      ...formData.value,
-      quantity: parseInt(formData.value.quantity),
-      unitPrice: parseFloat(formData.value.unitPrice)
+      farm: campaign.value.farm?._id || campaign.value.farm,
+      saleDate: formData.value.saleDate,
+      animalsSold: parseInt(formData.value.animalsSold),
+      pricePerUnit: parseFloat(formData.value.pricePerUnit),
+      totalRevenue: totalRevenue,
+      totalWeight: formData.value.totalWeight ? parseFloat(formData.value.totalWeight) : null,
+      buyer: formData.value.buyer,
+      notes: formData.value.notes
     })
     
     // Reload sales
@@ -156,12 +160,12 @@ async function submitSale() {
     
     // Reset form and close modal
     formData.value = {
-      date: new Date().toISOString().split('T')[0],
-      lot: '',
-      quantity: '',
-      unitPrice: '',
+      saleDate: new Date().toISOString().split('T')[0],
+      animalsSold: '',
+      pricePerUnit: '',
       buyer: '',
-      paymentStatus: 'Encaissé'
+      totalWeight: '',
+      notes: ''
     }
     showModal.value = false
   } catch (error) {

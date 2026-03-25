@@ -26,7 +26,7 @@
       </div>
       <div class="page-actions">
         <button class="btn btn-outline btn-sm" @click="showCreateAnimalModal = true"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Ajouter animal</button>
-        <button class="btn btn-outline btn-sm"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Modifier</button>
+      <button class="btn btn-primary btn-sm" @click="editCampaign"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Modifier</button>
         <button class="btn btn-primary btn-sm" @click="downloadReport"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exporter PDF</button>
       </div>
     </div>
@@ -146,9 +146,14 @@
 
   <!-- Santé -->
   <div v-if="activeTab==='health'">
-    <div class="card">
+    <div class="flex items-center justify-between mb-gap">
       <div class="card-title">Événements santé</div>
-      <div class="table-wrap">
+      <button class="btn btn-primary btn-sm" @click="showHealthModal = true">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        + Événement
+      </button>
+    </div>
+    <div class="card">
         <table class="table">
           <thead><tr><th>Date</th><th>Animal</th><th>Type</th><th>Description</th><th>Agent</th><th>Statut</th></tr></thead>
           <tbody>
@@ -302,7 +307,24 @@
       </div>
     </div>
   </div>
+
+  <!-- Modal Modifier Campagne -->
+  <ModalEditCampaign 
+    :open="showEditModal" 
+    :campaign="campaign"
+    @close="showEditModal = false"
+    @updated="loadCampaign"
+  />
+
+  <!-- Modal Créer Événement Santé -->
+  <ModalHealthEvent 
+    :open="showHealthModal" 
+    :campaign="campaign"
+    @close="showHealthModal = false"
+    @created="showHealthModal = false"
+  />
 </div>
+
 </template>
 
 <script setup>
@@ -310,6 +332,8 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useGerantStore } from '@/stores/gerant'
 import { campaignService, animalService } from '@/services/api'
+import ModalHealthEvent from '@/components/common/ModalHealthEvent.vue'
+import ModalEditCampaign from '@/components/common/ModalEditCampaign.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -322,6 +346,8 @@ const error = ref(null)
 const activeTab = ref('overview')
 const animalSearch = ref('')
 const showCreateAnimalModal = ref(false)
+const showHealthModal = ref(false)
+const showEditModal = ref(false)
 const selectedAnimal = ref(null)
 const showQRModal = ref(false)
 
@@ -457,6 +483,14 @@ function showQRCode(animal) {
 
 function viewAnimalFiche(animal) {
   router.push(`/gerant/animal/${animal._id}`)
+}
+
+function editCampaign() {
+  showEditModal.value = true
+}
+
+async function loadCampaign() {
+  await loadCampaignData()
 }
 
 function generateQRCode(text) {
