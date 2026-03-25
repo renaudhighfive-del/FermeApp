@@ -10,7 +10,7 @@ import {
 
 const router = express.Router();
 
-router.post("/", requireAuth, autoriser("admin"), createSale);
+router.post("/", requireAuth, autoriser("admin", "gerant"), createSale);
 router.get("/stats", requireAuth, getSalesStats);
 router.get("/", requireAuth, getSales);
 router.put("/:id", requireAuth, autoriser("admin"), updateSale);

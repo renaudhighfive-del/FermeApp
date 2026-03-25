@@ -1,3 +1,68 @@
+<script setup>
+import { ref, onMounted,computed } from 'vue'
+import { useGerantStore } from '@/stores/gerant'
+import { formatCurrency, formatDate, getDaysRemaining, getAnimalPercentage, getBudgetPercentage, getAnimalTypeClass, getStatusClass } from '@/utils/formatters'
+import ModalNewCampaign from '@/components/common/ModalNewCampaign.vue'
+import ModalEditCampaign from '@/components/common/ModalEditCampaign.vue'
+
+const gerantStore = useGerantStore()
+const showModal = ref(false)
+const showEditModal = ref(false)
+const selectedCampaign = ref(null)
+const activeFilter = ref('Toutes')
+const selectedAnimalType = ref('')
+const loading = ref(false)
+
+onMounted(async () => {
+  await loadData()
+})
+
+async function loadData() {
+  loading.value = true
+  try {
+    await gerantStore.fetchGerantFarms()
+    await gerantStore.fetchGerantCampaigns()
+  } catch (error) {
+    console.error('Erreur lors du chargement des données:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const filteredCampaigns = computed(() => {
+  let filtered = gerantStore.campaigns
+
+  if (activeFilter.value !== 'Toutes') {
+    filtered = filtered.filter(c => c.status === activeFilter.value)
+  }
+
+  if (selectedAnimalType.value) {
+    filtered = filtered.filter(c => c.animalType === selectedAnimalType.value)
+  }
+
+  return filtered
+})
+
+
+
+
+async function handleModalClose() {
+  showModal.value = false
+  await loadData()
+}
+
+function editCampaign(campaign) {
+  selectedCampaign.value = campaign
+  showEditModal.value = true
+}
+
+async function handleEditModalClose() {
+  showEditModal.value = false
+  selectedCampaign.value = null
+  await loadData()
+}
+</script>
+
 <template>
 <div>
   <div class="page-header">
@@ -11,48 +76,75 @@
       </div>
     </div>
   </div>
+
   <div class="filters-bar">
     <div class="filter-group">
-      <button class="filter-btn active">Toutes</button>
-      <button class="filter-btn">En cours</button>
-      <button class="filter-btn">Terminées</button>
-      <button class="filter-btn">En préparation</button>
+      <button v-for="status in ['Toutes', 'En cours', 'Terminée', 'Préparation']" :key="status" 
+              class="filter-btn" :class="{active: activeFilter === status}" @click="activeFilter = status">
+        {{ status }}
+      </button>
     </div>
-    <select class="filter-select"><option>Tous départements</option><option>Volaille</option><option>Bétail</option><option>Pisciculture</option></select>
+    <select class="filter-select" v-model="selectedAnimalType">
+      <option value="">Tous types d'animaux</option>
+      <option value="Volaille">Volaille</option>
+      <option value="Bétail">Bétail</option>
+      <option value="Pisciculture">Pisciculture</option>
+    </select>
   </div>
-  <div class="campaign-cards">
-    <div class="campaign-card" v-for="c in campaigns" :key="c.id">
+
+  <div v-if="loading" class="text-center p-20">
+    <p>Chargement des campagnes...</p>
+  </div>
+
+  <div v-else-if="filteredCampaigns.length === 0" class="text-center p-20">
+    <p class="text-soft">Aucune campagne trouvée</p>
+  </div>
+
+  <div v-else class="campaign-cards">
+    <div class="campaign-card" v-for="campaign in filteredCampaigns" :key="campaign._id || campaign.id">
       <div class="campaign-card-header">
         <div>
-          <div class="campaign-card-name">{{ c.name }}</div>
-          <div class="flex gap-8 mb-12"><span class="badge" :class="c.deptClass">{{ c.dept }}</span><span class="badge" :class="c.statusClass">{{ c.status }}</span></div>
+          <div class="campaign-card-name">{{ campaign.name }}</div>
+          <div class="flex gap-8 mb-12">
+            <span class="badge" :class="getAnimalTypeClass(campaign.animalType)">{{ campaign.animalType }}</span>
+            <span class="badge" :class="getStatusClass(campaign.status)">{{ campaign.status }}</span>
+          </div>
         </div>
       </div>
-      <div class="campaign-card-meta"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Démarré le {{ c.start }} · <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>{{ c.days }} jours restants</div>
-      <div class="progress-wrap">
-        <div class="progress-header"><span>Animaux</span><span>{{ c.animals }}</span></div>
-        <div class="progress-track"><div class="progress-fill fill-green" :style="{width:c.animalPct+'%'}"></div></div>
+      <div class="campaign-card-meta">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Démarré le {{ formatDate(campaign.startDate) }} · 
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        {{ getDaysRemaining(campaign.startDate) }} jours
       </div>
       <div class="progress-wrap">
-        <div class="progress-header"><span>Budget</span><span>{{ c.budget }}</span></div>
-        <div class="progress-track"><div class="progress-fill fill-yellow" :style="{width:c.budgetPct+'%'}"></div></div>
+        <div class="progress-header">
+          <span>Animaux</span>
+          <span>{{ campaign.currentAnimalCount }}/{{ campaign.initialAnimalCount }} ({{ getAnimalPercentage(campaign) }}%)</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill fill-green" :style="{width: getAnimalPercentage(campaign) + '%'}"></div>
+        </div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-header">
+          <span>Budget</span>
+          <span>{{ formatCurrency(campaign.spent) }}/{{ formatCurrency(campaign.budget) }} ({{ getBudgetPercentage(campaign) }}%)</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill fill-yellow" :style="{width: getBudgetPercentage(campaign) + '%'}"></div>
+        </div>
       </div>
       <div class="campaign-card-actions">
-        <RouterLink :to="'/gerant/campaigns/'+c.id" class="btn btn-primary btn-sm">Voir détail</RouterLink>
-        <button class="btn btn-outline btn-sm">Modifier</button>
+        <RouterLink :to="'/gerant/campaigns/' + (campaign._id || campaign.id)" class="btn btn-primary btn-sm">Voir détail</RouterLink>
+        <button class="btn btn-outline btn-sm" @click="editCampaign(campaign)">Modifier</button>
       </div>
     </div>
   </div>
-  <ModalNewCampaign :open="showModal" @close="showModal=false"/>
+
+  <ModalNewCampaign v-if="showModal" :open="showModal" @close="handleModalClose"/>
+  <ModalEditCampaign v-if="showEditModal" :open="showEditModal" :campaign="selectedCampaign" @close="handleEditModalClose"/>
 </div>
 </template>
-<script setup>
-import { ref } from 'vue'
-import ModalNewCampaign from '@/components/common/ModalNewCampaign.vue'
-const showModal = ref(false)
-const campaigns = [
-  { id:1, name:'Campagne Mars 2026', dept:'Volaille', deptClass:'badge-vol', status:'En cours', statusClass:'badge-encours', start:'01/03/2026', days:'27', animals:'480/500', animalPct:96, budget:'620k/850k FCFA', budgetPct:73 },
-  { id:2, name:'Lot Bœufs Fév', dept:'Bétail', deptClass:'badge-bet', status:'Terminée', statusClass:'badge-terminee', start:'01/02/2026', days:'0', animals:'43/45', animalPct:96, budget:'2.4M/2.4M FCFA', budgetPct:100 },
-  { id:3, name:'Bassin Tilapia', dept:'Pisciculture', deptClass:'badge-pis', status:'En préparation', statusClass:'badge-prep', start:'25/03/2026', days:'45', animals:'0/1000', animalPct:0, budget:'0/320k FCFA', budgetPct:0 },
-]
-</script>
+
+

@@ -13,13 +13,20 @@ export async function creerUser(req, res, next) {
   }
 }
 
-// ── Lister tous les users (admin seulement) ───────────────────────
+// ── Lister tous les users (admin et gerant) ───────────────────────
 export async function listerUsers(req, res, next) {
   try {
     const { role, actif, page = 1, limit = 20 } = req.query;
 
     const filtre = {};
-    if (role) filtre.role = role;
+    
+    // Si l'utilisateur n'est pas admin, il ne peut voir que les agents
+    if (req.user.role !== 'admin') {
+      filtre.role = 'agent';
+    } else if (role) {
+      filtre.role = role;
+    }
+
     if (actif !== undefined) filtre.actif = actif === "true";
 
     const skip = (Number(page) - 1) * Number(limit);

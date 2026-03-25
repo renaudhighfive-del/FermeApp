@@ -2,7 +2,7 @@ import Animal from "../models/Animal.js";
 
 export const createAnimal = async (req, res) => {
   try {
-    const { campaign, idNumber, type, breed, dateOfBirth, weight } = req.body;
+    const { campaign, idNumber, type, breed, dateOfBirth, weight, location } = req.body;
 
     const animal = new Animal({
       campaign,
@@ -11,11 +11,16 @@ export const createAnimal = async (req, res) => {
       breed,
       dateOfBirth,
       weight,
+      location,
     });
 
     await animal.save();
     res.status(201).json(animal);
   } catch (error) {
+    console.error('createAnimal error:', error);
+    if (error.name === 'MongoServerError' && error.code === 11000) {
+      return res.status(409).json({ error: 'Un animal avec ce numéro existe déjà.' });
+    }
     res.status(400).json({ error: error.message });
   }
 };
@@ -54,7 +59,10 @@ export const getAnimals = async (req, res) => {
 
 export const getAnimal = async (req, res) => {
   try {
-    const animal = await Animal.findById(req.params.id).populate("campaign");
+    const animal = await Animal.findById(req.params.id).populate({
+      path: "campaign",
+      populate: { path: "agents managers", select: "name email role" }
+    });
     if (!animal) return res.status(404).json({ error: "Animal not found" });
     res.json(animal);
   } catch (error) {

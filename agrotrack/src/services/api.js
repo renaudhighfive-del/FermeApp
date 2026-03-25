@@ -104,7 +104,9 @@ export const settingsService = {
 export const eventService = {
   getAll: (params) => axios.get("/events", { params }),
   create: (data) => axios.post("/events", data),
+  createGerant: (data) => axios.post("/events/gerant", data),
   update: (id, data) => axios.put(`/events/${id}`, data),
+  updateGerant: (id, data) => axios.put(`/events/gerant/${id}`, data),
   delete: (id) => axios.delete(`/events/${id}`),
 };
 

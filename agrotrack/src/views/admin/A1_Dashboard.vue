@@ -1,3 +1,104 @@
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useAuthStore }  from '@/stores/auth.js'
+import { useUiStore }    from '@/stores/ui.js'
+import { useAdminStore } from '@/stores/admin.js'
+
+const auth      = useAuthStore()
+const ui        = useUiStore()
+const admin     = useAdminStore()
+const showModal = ref(false)
+
+// Dashboard stats
+const stats = ref({
+  totalAnimals: 0,
+  activeCampaigns: 0,
+  mortality: 0,
+  totalRevenue: 0,
+})
+
+const loading = ref(true)
+
+// Date dynamique
+const dateAujourdhui = computed(() => {
+  return new Date().toLocaleDateString('fr-FR', {
+    weekday: 'long',
+    day:     'numeric',
+    month:   'long',
+    year:    'numeric',
+  })
+})
+
+// Helpers
+const formatDate = (date) => {
+  if (!date) return '-'
+  return new Date(date).toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'short'
+  })
+}
+
+const getBadgeClass = (value) => {
+  const classes = {
+    'En cours': 'bg-[var(--success)]/10 text-[var(--success)]',
+    'Terminée': 'bg-[var(--soft)]/10 text-[var(--soft)]',
+    'Préparation': 'bg-[var(--warn)]/10 text-[var(--warn)]',
+  }
+  return classes[value] || 'bg-[var(--bg)] text-[var(--soft)]'
+}
+
+// Récupérer les stats du dashboard
+const fetchDashboardStats = async () => {
+  try {
+    loading.value = true
+    await Promise.all([
+      admin.fetchStats(),
+      admin.fetchCampaigns(),
+      admin.fetchAlerts()
+    ])
+    
+    if (admin.stats) {
+      stats.value = admin.stats
+    }
+  } catch (error) {
+    console.error("Erreur stats dashboard:", error)
+    ui.error("Impossible de charger les statistiques")
+  } finally {
+    loading.value = false
+  }
+}
+
+// Exporter en PDF
+const exporterPDF = async () => {
+  try {
+    ui.info("Préparation de l'export PDF...")
+    const { default: html2pdf } = await import('html2pdf.js')
+    
+    const element = document.getElementById('pdf-content')
+    if (!element) throw new Error('Element introuvable')
+
+    const opt = {
+      margin: 10,
+      filename: `Tableau-Bord-AgroTrack-${new Date().toLocaleDateString('fr-FR')}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { orientation: 'landscape', unit: 'mm', format: 'a4' }
+    }
+    
+    await html2pdf().set(opt).from(element).save()
+    ui.success("Exportation PDF terminée")
+
+  } catch (error) {
+    console.error('Erreur lors de l\'export PDF:', error)
+    ui.error('Erreur lors de l\'exportation PDF')
+  }
+}
+
+onMounted(() => {
+  fetchDashboardStats()
+})
+</script>
+
 <template>
   <div id="pdf-content" class="space-y-6">
 
@@ -189,14 +290,8 @@
   </div>
 </template>
 
-<script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useAuthStore }  from '@/stores/auth.js'
-import { useUiStore }    from '@/stores/ui.js'
-import { useAdminStore } from '@/stores/admin.js'
-import ModalNewCampaign  from '@/components/common/ModalNewCampaign.vue'
 
-const auth      = useAuthStore()
+<!-- const auth      = useAuthStore()
 const ui        = useUiStore()
 const admin     = useAdminStore()
 const showModal = ref(false)
@@ -387,7 +482,7 @@ const exporterPDF = async () => {
 onMounted(() => {
   fetchDashboardStats()
 })
-</script>
+</script> -->
 
 <style scoped>
 /* Styles spécifiques si nécessaire */

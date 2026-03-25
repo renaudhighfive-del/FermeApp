@@ -2,54 +2,145 @@
 <div>
   <div class="page-header">
     <div class="page-header-row">
-      <div><h1 class="page-title">Alimentation</h1><p class="page-subtitle">Gestion des stocks et distributions</p></div>
+      <div>
+        <h1 class="page-title">Alimentation</h1>
+        <p class="page-subtitle" v-if="campaign">{{ campaign.name }} · Gestion des stocks et distributions</p>
+        <p class="page-subtitle" v-else>Aucune campagne active</p>
+      </div>
       <div class="page-actions">
-        <button class="btn btn-outline btn-sm">+ Commander</button>
-        <button class="btn btn-primary btn-sm">+ Distribution</button>
+        <select v-if="activeCampaigns.length > 1" class="filter-select" v-model="selectedCampaignId" style="margin-right: 10px;">
+          <option v-for="c in activeCampaigns" :key="c._id || c.id" :value="c._id || c.id">
+            {{ c.name }}
+          </option>
+        </select>
+        <button class="btn btn-outline btn-sm" @click="showOrderModal = true">+ Commander</button>
+        <button class="btn btn-primary btn-sm" @click="showDistributionModal = true">+ Distribution</button>
       </div>
     </div>
   </div>
-  <div class="kpi-grid mb-gap">
-    <div class="kpi-card"><div class="kpi-label">Stock disponible</div><div class="kpi-value" style="color:var(--warn)">120 kg</div><div class="kpi-sub warn">⚠ Seuil critique : 50kg</div></div>
-    <div class="kpi-card"><div class="kpi-label">Consommation/jour</div><div class="kpi-value">15 kg</div><div class="kpi-sub">8 jours restants</div></div>
-    <div class="kpi-card"><div class="kpi-label">Consommation semaine</div><div class="kpi-value">105 kg</div></div>
-    <div class="kpi-card"><div class="kpi-label">Coût total aliments</div><div class="kpi-value">280 000 FCFA</div></div>
+
+  <div v-if="loading" class="card" style="text-align: center; padding: 40px;">
+    <p class="text-soft">Chargement...</p>
   </div>
 
-  <div class="alert-card alert-warning mb-gap">
-    <svg width="18" height="18" fill="none" stroke="#E07B39" stroke-width="1.5" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:2px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
-    <div class="alert-content">
-      <div class="alert-title">Stock aliment faible — Granulés croissance</div>
-      <div class="alert-desc">120kg restants · Consommation : 15kg/jour · Durée estimée : 8 jours</div>
-      <button class="btn btn-sm" style="background:#FFF7ED;color:var(--warn);border:1px solid var(--warn)">Commander maintenant</button>
+  <div v-else-if="!campaign" class="card" style="text-align: center; padding: 40px;">
+    <p class="text-soft" style="font-size: 16px;">Aucune campagne active</p>
+    <RouterLink to="/gerant/campaigns" class="btn btn-primary" style="margin-top: 20px;">Voir les campagnes</RouterLink>
+  </div>
+
+  <div v-else>
+    <div class="kpi-grid mb-gap">
+      <div class="kpi-card"><div class="kpi-label">Consommation aliments</div><div class="kpi-value" style="color:var(--warn)">{{ campaign.feedConsumed }} kg</div><div class="kpi-sub warn">FCR: {{ campaign.fcr }}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Coût alimentation</div><div class="kpi-value">{{ formatCurrency(campaign.feedCost) }}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Consommation/jour</div><div class="kpi-value">{{ (campaign.feedConsumed / Math.max(1, getDaysRemaining(campaign.startDate)) || 0).toFixed(1) }} kg</div></div>
+      <div class="kpi-card"><div class="kpi-label">Budget stock</div><div class="kpi-value">{{ formatCurrency(campaign.feedCost) }}</div></div>
+    </div>
+
+    <!-- Alertes de stock -->
+    <div v-if="lowStockItems.length > 0" class="mb-gap">
+      <div v-for="item in lowStockItems" :key="item._id" class="alert-card alert-danger mb-12">
+        <svg width="18" height="18" fill="none" stroke="#D62828" stroke-width="1.5" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div class="alert-content">
+          <div class="alert-title">Stock critique: {{ item.name }}</div>
+          <div class="alert-desc">Il ne reste que {{ item.quantity }} kg en stock (Seuil: {{ item.reorderLevel }} kg).</div>
+        </div>
+        <button class="btn btn-outline btn-sm" @click="showOrderModal = true">Commander</button>
+      </div>
+    </div>
+
+    <div v-else class="alert-card alert-success mb-gap">
+      <svg width="18" height="18" fill="none" stroke="#2D6A4F" stroke-width="1.5" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:2px"><polyline points="20 6 9 17 4 12"/></svg>
+      <div class="alert-content">
+        <div class="alert-title">Stocks optimaux</div>
+        <div class="alert-desc">Tous les niveaux d'aliments sont au-dessus des seuils d'alerte.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Résumé alimentation</div>
+      <div style="font-size:13px;line-height:2;color:var(--soft)">
+        <p><strong>Campagne:</strong> {{ campaign.name }}</p>
+        <p><strong>Aliments consommés:</strong> {{ campaign.feedConsumed }} kg</p>
+        <p><strong>Coût total:</strong> {{ formatCurrency(campaign.feedCost) }}</p>
+        <p><strong>FCR (Food Conversion Ratio):</strong> {{ campaign.fcr }}</p>
+      </div>
     </div>
   </div>
 
-  <div class="card mb-gap">
-    <div class="card-title">Consommation quotidienne — 30 jours</div>
-    <svg width="100%" height="120" viewBox="0 0 520 120">
-      <line x1="0" y1="100" x2="520" y2="100" stroke="#E8D9C5" stroke-width="0.5"/>
-      <line x1="0" y1="40" x2="520" y2="40" stroke="#E8D9C5" stroke-width="0.5" stroke-dasharray="3"/>
-      <line x1="0" y1="70" x2="520" y2="70" stroke="#E8D9C5" stroke-width="0.5" stroke-dasharray="3"/>
-      <path d="M0,80 L18,78 L36,82 L54,76 L72,74 L90,79 L108,73 L126,75 L144,70 L162,72 L180,68 L198,65 L216,67 L234,62 L252,60 L270,63 L288,58 L306,55 L324,57 L342,53 L360,50 L378,52 L396,48 L414,45 L432,47 L450,43 L468,41 L486,40 L504,38 L520,36" fill="none" stroke="#E8813A" stroke-width="2"/>
-      <text x="0" y="115" font-size="9" fill="#7A6652">J1</text><text x="260" y="115" text-anchor="middle" font-size="9" fill="#7A6652">J15</text><text x="520" y="115" text-anchor="end" font-size="9" fill="#7A6652">J30</text>
-    </svg>
-  </div>
+  <!-- Modals -->
+  <ModalFoodDistribution 
+    v-if="showDistributionModal"
+    :open="showDistributionModal"
+    :campaign="campaign"
+    @close="showDistributionModal = false"
+    @success="loadData"
+  />
 
-  <div class="card">
-    <div class="card-title">Distributions récentes</div>
-    <div class="table-wrap">
-      <table class="table">
-        <thead><tr><th>Date</th><th>Lot</th><th>Quantité</th><th>Type aliment</th><th>Agent</th></tr></thead>
-        <tbody>
-          <tr><td class="text-soft text-sm">19/03/26</td><td>Lot A+B+C</td><td class="fw-600">15 kg</td><td>Granulés croissance</td><td class="text-soft">Awa Traoré</td></tr>
-          <tr><td class="text-soft text-sm">18/03/26</td><td>Lot A+B+C</td><td class="fw-600">15 kg</td><td>Granulés croissance</td><td class="text-soft">Paul Ahoua</td></tr>
-          <tr><td class="text-soft text-sm">17/03/26</td><td>Lot A+B+C</td><td class="fw-600">12 kg</td><td>Granulés démarrage</td><td class="text-soft">Awa Traoré</td></tr>
-          <tr><td class="text-soft text-sm">16/03/26</td><td>Lot A+B</td><td class="fw-600">10 kg</td><td>Granulés croissance</td><td class="text-soft">Paul Ahoua</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+  <ModalFoodOrder 
+    v-if="showOrderModal"
+    :open="showOrderModal"
+    :campaign="campaign"
+    @close="showOrderModal = false"
+    @success="loadData"
+  />
 </div>
 </template>
-<script setup></script>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useGerantStore } from '@/stores/gerant'
+import { productService } from '@/services/api'
+import { formatCurrency, getDaysRemaining } from '@/utils/formatters'
+import ModalFoodDistribution from '@/components/common/ModalFoodDistribution.vue'
+import ModalFoodOrder from '@/components/common/ModalFoodOrder.vue'
+
+const gerantStore = useGerantStore()
+const activeCampaigns = computed(() => gerantStore.activeCampaigns)
+const selectedCampaignId = ref('')
+const loading = ref(false)
+const showDistributionModal = ref(false)
+const showOrderModal = ref(false)
+const lowStockItems = ref([])
+
+const campaign = computed(() => {
+  if (selectedCampaignId.value) {
+    return activeCampaigns.value.find(c => (c._id || c.id) === selectedCampaignId.value) || activeCampaigns.value[0] || null
+  }
+  return activeCampaigns.value[0] || null
+})
+
+onMounted(async () => {
+  await loadData()
+})
+
+async function loadData() {
+  loading.value = true
+  try {
+    await gerantStore.fetchGerantFarms()
+    await gerantStore.fetchGerantCampaigns()
+    
+    if (activeCampaigns.value.length > 0 && !selectedCampaignId.value) {
+      selectedCampaignId.value = activeCampaigns.value[0]._id || activeCampaigns.value[0].id
+    }
+
+    if (campaign.value) {
+      await fetchStockAlerts()
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement des données:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+async function fetchStockAlerts() {
+  try {
+    const farmId = campaign.value.farm._id || campaign.value.farm
+    const res = await productService.getAll({ farm: farmId, category: 'Aliment' })
+    const products = res.data.products || res.data || []
+    lowStockItems.value = products.filter(p => p.quantity <= p.reorderLevel)
+  } catch (err) {
+    console.error('Erreur alertes stock:', err)
+  }
+}
+</script>

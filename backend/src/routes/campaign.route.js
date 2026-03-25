@@ -11,11 +11,11 @@ import {
 
 const router = express.Router();
 
-router.post("/", requireAuth, autoriser("admin"), createCampaign);
+router.post("/", requireAuth, autoriser("admin", "gerant"), createCampaign);
 router.get("/", requireAuth, getCampaigns);
 router.get("/:id/stats", requireAuth, getCampaignStats);
 router.get("/:id", requireAuth, getCampaign);
-router.put("/:id", requireAuth, autoriser("admin"), updateCampaign);
-router.delete("/:id", requireAuth, autoriser("admin"), deleteCampaign);
+router.put("/:id", requireAuth, autoriser("admin", "gerant"), updateCampaign);
+router.delete("/:id", requireAuth, autoriser("admin", "gerant"), deleteCampaign);
 
 export default router;

@@ -11,7 +11,7 @@ import {
 
 const router = express.Router();
 
-router.post("/", requireAuth, autoriser("admin"), createTransaction);
+router.post("/", requireAuth, autoriser("admin", "gerant"), createTransaction);
 router.get("/summary", requireAuth, getFinancialSummary);
 router.get("/", requireAuth, getTransactions);
 router.get("/:id", requireAuth, getTransaction);

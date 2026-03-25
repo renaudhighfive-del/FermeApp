@@ -3,7 +3,7 @@ import Animal from "../models/Animal.js";
 
 export const createCampaign = async (req, res) => {
   try {
-    const { name, farm, animalType, startDate, initialAnimalCount, budget } =
+    const { name, farm, animalType, startDate, initialAnimalCount, budget, agents } =
       req.body;
 
     const campaign = new Campaign({
@@ -14,6 +14,8 @@ export const createCampaign = async (req, res) => {
       initialAnimalCount,
       currentAnimalCount: initialAnimalCount,
       budget,
+      agents: agents || [],
+      managers: [req.user._id] // Le créateur est manager par défaut
     });
 
     await campaign.save();
@@ -34,6 +36,8 @@ export const getCampaigns = async (req, res) => {
 
     const campaigns = await Campaign.find(filter)
       .populate("farm")
+      .populate("agents", "name email role")
+      .populate("managers", "name email role")
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -51,7 +55,10 @@ export const getCampaigns = async (req, res) => {
 
 export const getCampaign = async (req, res) => {
   try {
-    const campaign = await Campaign.findById(req.params.id).populate("farm");
+    const campaign = await Campaign.findById(req.params.id)
+      .populate("farm")
+      .populate("agents", "name email role")
+      .populate("managers", "name email role");
     if (!campaign) return res.status(404).json({ error: "Campaign not found" });
     res.json(campaign);
   } catch (error) {
@@ -65,7 +72,7 @@ export const updateCampaign = async (req, res) => {
       req.params.id,
       req.body,
       { new: true }
-    ).populate("farm");
+    ).populate("farm").populate("agents", "name email role");
 
     if (!campaign) return res.status(404).json({ error: "Campaign not found" });
     res.json(campaign);

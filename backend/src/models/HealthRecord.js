@@ -25,6 +25,10 @@ const healthRecordSchema = new mongoose.Schema(
       enum: ["Complété", "En attente", "Programmé"],
       default: "Complété",
     },
+    assignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
     notes: String,
     adminName: String, // who recorded it
   },

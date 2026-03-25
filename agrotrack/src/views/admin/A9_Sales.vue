@@ -1,3 +1,10 @@
+<script setup>
+import { useAdminStore } from '@/stores/admin'
+import { useUiStore } from '@/stores/ui'
+
+const admin = useAdminStore()
+const ui = useUiStore()
+</script>
 <template>
   <div class="space-y-6">
     <!-- Header -->
@@ -94,10 +101,4 @@
   </div>
 </template>
 
-<script setup>
-import { useAdminStore } from '@/stores/admin'
-import { useUiStore } from '@/stores/ui'
 
-const admin = useAdminStore()
-const ui = useUiStore()
-</script>

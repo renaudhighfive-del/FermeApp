@@ -13,7 +13,7 @@ const router = Router()
 // Toutes les routes nécessitent d'être connecté
 router.use(requireAuth)
 
-// ── CRUD users — admin seulement ──────────────────────────────────
+// ── CRUD users — admin (et gerant pour la liste des agents) ──────
 router.get('/',    autoriser('admin', 'gerant'), listerUsers)   // GET    /api/users
 router.post('/',   autoriser('admin'), creerUser)     // POST   /api/users
 router.get('/:id', autoriser('admin'), obtenirUser)   // GET    /api/users/:id

@@ -1,3 +1,143 @@
+<script setup>
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useAdminStore } from '@/stores/admin'
+import { useUiStore } from '@/stores/ui'
+import { userService } from '@/services/api'
+
+const admin = useAdminStore()
+const ui = useUiStore()
+
+const showFormModal = ref(false)
+const showDetailsModal = ref(false)
+const isEditing = ref(false)
+const isSubmitting = ref(false)
+const selectedTask = ref(null)
+const agents = ref([])
+
+const filters = reactive({
+  status: '',
+  type: ''
+})
+
+const form = reactive({
+  type: 'feeding',
+  campaign: '',
+  assignedTo: '',
+  dueDate: '',
+  priority: 'medium',
+  quantity: 0,
+  description: ''
+})
+
+const filteredEvents = computed(() => {
+  return (admin.events || []).filter(e => {
+    const matchStatus = !filters.status || e.status === filters.status
+    const matchType = !filters.type || e.type === filters.type
+    return matchStatus && matchType
+  })
+})
+
+const resetFilters = () => {
+  filters.status = ''
+  filters.type = ''
+}
+
+const openCreateModal = () => {
+  isEditing.value = false
+  Object.assign(form, {
+    type: 'feeding',
+    campaign: admin.campaigns[0]?._id || '',
+    assignedTo: agents.value[0]?._id || '',
+    dueDate: new Date().toISOString().split('T')[0],
+    priority: 'medium',
+    quantity: 0,
+    description: ''
+  })
+  showFormModal.value = true
+}
+
+const openEditModal = (task) => {
+  isEditing.value = true
+  selectedTask.value = task
+  Object.assign(form, {
+    type: task.type,
+    campaign: task.campaign?._id || task.campaign,
+    assignedTo: task.assignedTo?._id || task.assignedTo,
+    dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
+    priority: task.priority,
+    quantity: task.quantity,
+    description: task.description
+  })
+  showFormModal.value = true
+}
+
+const openDetailsModal = (task) => {
+  selectedTask.value = task
+  showDetailsModal.value = true
+}
+
+const submitForm = async () => {
+  try {
+    isSubmitting.value = true
+    if (isEditing.value) {
+      await admin.updateEvent(selectedTask.value._id, form)
+      ui.success('Tâche mise à jour')
+    } else {
+      await admin.createEvent(form)
+      ui.success('Tâche assignée avec succès')
+    }
+    showFormModal.value = false
+    await admin.fetchEvents()
+  } catch (err) {
+    ui.error('Erreur lors de la sauvegarde')
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+const deleteTask = async (id) => {
+  const confirm = await ui.confirm({
+    title: 'Supprimer la tâche',
+    message: 'Êtes-vous sûr de vouloir supprimer cette tâche ?',
+    confirmText: 'Supprimer',
+    type: 'danger'
+  })
+  if (confirm) {
+    try {
+      await admin.deleteEvent(id)
+      ui.success('Tâche supprimée')
+    } catch (err) {
+      ui.error('Erreur de suppression')
+    }
+  }
+}
+
+const getTypeName = (type) => {
+  const map = { feeding: 'Alimentation', mortality: 'Mortalité', vaccination: 'Vaccination', treatment: 'Traitement', weight: 'Pesée', other: 'Autre' }
+  return map[type] || type
+}
+
+const getTypeClass = (type) => {
+  const map = { feeding: 'bg-blue-50 text-blue-600', mortality: 'bg-red-50 text-red-600', vaccination: 'bg-purple-50 text-purple-600', treatment: 'bg-emerald-50 text-emerald-600', weight: 'bg-amber-50 text-amber-600', other: 'bg-slate-50 text-slate-600' }
+  return map[type] || 'bg-slate-50 text-slate-600'
+}
+
+const getPriorityClass = (p) => {
+  const map = { low: 'bg-slate-50 text-slate-600 border-slate-200', medium: 'bg-blue-50 text-blue-600 border-blue-200', high: 'bg-orange-50 text-orange-600 border-orange-200', urgent: 'bg-red-50 text-red-600 border-red-200 animate-pulse' }
+  return map[p] || ''
+}
+
+// Simple icons placeholders (SVG)
+const getTypeIcon = (type) => 'svg' // Replace with real icons in full implementation
+
+onMounted(async () => {
+  await Promise.all([
+    admin.fetchEvents(),
+    admin.fetchCampaigns({ limit: 100 }),
+    userService.getAll({ role: 'agent' }).then(res => agents.value = res.data.users)
+  ])
+})
+</script>
 <template>
   <div class="space-y-6">
     <!-- Header -->
@@ -211,146 +351,7 @@
   </div>
 </template>
 
-<script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
-import { useAdminStore } from '@/stores/admin'
-import { useUiStore } from '@/stores/ui'
-import { userService } from '@/services/api'
 
-const admin = useAdminStore()
-const ui = useUiStore()
-
-const showFormModal = ref(false)
-const showDetailsModal = ref(false)
-const isEditing = ref(false)
-const isSubmitting = ref(false)
-const selectedTask = ref(null)
-const agents = ref([])
-
-const filters = reactive({
-  status: '',
-  type: ''
-})
-
-const form = reactive({
-  type: 'feeding',
-  campaign: '',
-  assignedTo: '',
-  dueDate: '',
-  priority: 'medium',
-  quantity: 0,
-  description: ''
-})
-
-const filteredEvents = computed(() => {
-  return (admin.events || []).filter(e => {
-    const matchStatus = !filters.status || e.status === filters.status
-    const matchType = !filters.type || e.type === filters.type
-    return matchStatus && matchType
-  })
-})
-
-const resetFilters = () => {
-  filters.status = ''
-  filters.type = ''
-}
-
-const openCreateModal = () => {
-  isEditing.value = false
-  Object.assign(form, {
-    type: 'feeding',
-    campaign: admin.campaigns[0]?._id || '',
-    assignedTo: agents.value[0]?._id || '',
-    dueDate: new Date().toISOString().split('T')[0],
-    priority: 'medium',
-    quantity: 0,
-    description: ''
-  })
-  showFormModal.value = true
-}
-
-const openEditModal = (task) => {
-  isEditing.value = true
-  selectedTask.value = task
-  Object.assign(form, {
-    type: task.type,
-    campaign: task.campaign?._id || task.campaign,
-    assignedTo: task.assignedTo?._id || task.assignedTo,
-    dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
-    priority: task.priority,
-    quantity: task.quantity,
-    description: task.description
-  })
-  showFormModal.value = true
-}
-
-const openDetailsModal = (task) => {
-  selectedTask.value = task
-  showDetailsModal.value = true
-}
-
-const submitForm = async () => {
-  try {
-    isSubmitting.value = true
-    if (isEditing.value) {
-      await admin.updateEvent(selectedTask.value._id, form)
-      ui.success('Tâche mise à jour')
-    } else {
-      await admin.createEvent(form)
-      ui.success('Tâche assignée avec succès')
-    }
-    showFormModal.value = false
-    await admin.fetchEvents()
-  } catch (err) {
-    ui.error('Erreur lors de la sauvegarde')
-  } finally {
-    isSubmitting.value = false
-  }
-}
-
-const deleteTask = async (id) => {
-  const confirm = await ui.confirm({
-    title: 'Supprimer la tâche',
-    message: 'Êtes-vous sûr de vouloir supprimer cette tâche ?',
-    confirmText: 'Supprimer',
-    type: 'danger'
-  })
-  if (confirm) {
-    try {
-      await admin.deleteEvent(id)
-      ui.success('Tâche supprimée')
-    } catch (err) {
-      ui.error('Erreur de suppression')
-    }
-  }
-}
-
-const getTypeName = (type) => {
-  const map = { feeding: 'Alimentation', mortality: 'Mortalité', vaccination: 'Vaccination', treatment: 'Traitement', weight: 'Pesée', other: 'Autre' }
-  return map[type] || type
-}
-
-const getTypeClass = (type) => {
-  const map = { feeding: 'bg-blue-50 text-blue-600', mortality: 'bg-red-50 text-red-600', vaccination: 'bg-purple-50 text-purple-600', treatment: 'bg-emerald-50 text-emerald-600', weight: 'bg-amber-50 text-amber-600', other: 'bg-slate-50 text-slate-600' }
-  return map[type] || 'bg-slate-50 text-slate-600'
-}
-
-const getPriorityClass = (p) => {
-  const map = { low: 'bg-slate-50 text-slate-600 border-slate-200', medium: 'bg-blue-50 text-blue-600 border-blue-200', high: 'bg-orange-50 text-orange-600 border-orange-200', urgent: 'bg-red-50 text-red-600 border-red-200 animate-pulse' }
-  return map[p] || ''
-}
-
-// Simple icons placeholders (SVG)
-const getTypeIcon = (type) => 'svg' // Replace with real icons in full implementation
-
-onMounted(async () => {
-  await Promise.all([
-    admin.fetchEvents(),
-    admin.fetchCampaigns({ limit: 100 }),
-    userService.getAll({ role: 'agent' }).then(res => agents.value = res.data.users)
-  ])
-})
-</script>
 
 <style scoped>
 @keyframes modal-pop {
