@@ -273,7 +273,60 @@ const exporterPDF = async () => {
       margin: 10,
       filename: `Tableau-Bord-AgroTrack-${new Date().toLocaleDateString('fr-FR')}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
+      html2canvas: { 
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        letterRendering: true,
+        allowTaint: true,
+        onclone: (clonedDoc) => {
+          // Force light mode
+          clonedDoc.documentElement.classList.remove('dark')
+          clonedDoc.documentElement.classList.add('light')
+          
+          const style = clonedDoc.createElement('style')
+          style.innerHTML = `
+            * { 
+              color-scheme: light !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            /* Remplacement global des couleurs oklch/oklab par des fallbacks safe */
+            :root {
+              --primary: #3D2B1F !important;
+              --accent: #F2B705 !important;
+              --bg: #FDF6EC !important;
+              --card: #FFFFFF !important;
+              --text: #1A1008 !important;
+              --soft: #7A6652 !important;
+              --border: #E8D9C5 !important;
+              --success: #2D6A4F !important;
+              --warn: #E07B39 !important;
+              --danger: #D62828 !important;
+              --vol: #E8813A !important;
+              --bet: #8B5E3C !important;
+              --pis: #1A6B8A !important;
+            }
+            /* Forcer le blanc sur les fonds de cartes pour html2canvas */
+            .card { background-color: #FFFFFF !important; }
+            #pdf-content { background-color: #FDF6EC !important; padding: 20px !important; }
+            
+            /* Désactiver les gradients complexes qui utilisent oklch */
+            * { background-image: none !important; }
+          `
+          clonedDoc.head.appendChild(style)
+
+          // Nettoyage manuel des styles calculés problématiques
+          const allElements = clonedDoc.getElementsByTagName('*')
+          for (let i = 0; i < allElements.length; i++) {
+            const el = allElements[i]
+            // Si l'élément a une couleur qui pourrait être oklch, on la force en inherit ou safe
+            if (el.classList.contains('text-zinc-500')) el.style.color = '#71717a'
+            if (el.classList.contains('bg-white')) el.style.backgroundColor = '#ffffff'
+            if (el.classList.contains('bg-emerald-600')) el.style.backgroundColor = '#059669'
+          }
+        }
+      },
       jsPDF: { orientation: 'landscape', unit: 'mm', format: 'a4' }
     }
     
