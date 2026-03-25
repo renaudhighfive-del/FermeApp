@@ -1,65 +1,71 @@
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex justify-between items-center">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-slate-800">Utilisateurs</h1>
-        <p class="text-slate-600">Gérez les utilisateurs et leurs rôles</p>
+        <h1 class="text-2xl sm:text-3xl font-bold text-[var(--text)]">Utilisateurs</h1>
+        <p class="text-[var(--soft)]">Gérez les utilisateurs et leurs rôles</p>
       </div>
       <button
         @click="showNewModal = true"
-        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+        class="btn btn-primary"
       >
-        <span>+</span> Inviter Utilisateur
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        <span>Inviter Utilisateur</span>
       </button>
     </div>
 
     <!-- Users Table -->
-    <div class="bg-white rounded-lg shadow overflow-hidden">
+    <div class="table-container">
       <div class="overflow-x-auto">
-        <table class="w-full">
-          <thead class="bg-slate-100 border-b border-slate-200">
+        <table>
+          <thead>
             <tr>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Nom</th>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Email</th>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Rôle</th>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Statut</th>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Actions</th>
+              <th>Nom</th>
+              <th class="hide-mobile">Email</th>
+              <th>Rôle</th>
+              <th class="hide-mobile">Statut</th>
+              <th class="text-right">Actions</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-200">
-            <tr v-for="user in (users || []).filter(u => u && u._id)" :key="user._id" class="hover:bg-slate-50">
-              <td class="px-6 py-4 text-sm font-medium text-slate-900">{{ user.name }}</td>
-              <td class="px-6 py-4 text-sm text-slate-600">{{ user.email }}</td>
-              <td class="px-6 py-4 text-sm">
+          <tbody>
+            <tr v-for="user in (users || []).filter(u => u && u._id)" :key="user._id">
+              <td class="font-bold text-[var(--text)]">{{ user.name }}</td>
+              <td class="hide-mobile text-[var(--soft)]">{{ user.email }}</td>
+              <td>
                 <span
                   :class="{
-                    'bg-blue-100 text-blue-800': user.role === 'admin',
-                    'bg-purple-100 text-purple-800': user.role === 'gerant',
-                    'bg-green-100 text-green-800': user.role === 'agent',
+                    'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400': user.role === 'admin',
+                    'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400': user.role === 'gerant',
+                    'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400': user.role === 'agent',
                   }"
-                  class="px-3 py-1 rounded-full text-xs font-medium"
+                  class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
                 >
                   {{ user.role }}
                 </span>
               </td>
-              <td class="px-6 py-4 text-sm">
+              <td class="hide-mobile">
                 <span
-                  :class="{
-                    'bg-green-100 text-green-800': user.actif,
-                    'bg-red-100 text-red-800': !user.actif,
-                  }"
-                  class="px-3 py-1 rounded-full text-xs font-medium"
+                  :class="user.actif ? 'bg-[var(--success)]/10 text-[var(--success)]' : 'bg-[var(--danger)]/10 text-[var(--danger)]'"
+                  class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
                 >
                   {{ user.actif ? 'Actif' : 'Inactif' }}
                 </span>
               </td>
-              <td class="px-6 py-4 text-sm space-x-2">
-                <button @click="openDetailsModal(user)" class="text-green-600 hover:text-green-800">Voir</button>
-                <button @click="openEditModal(user)" class="text-blue-600 hover:text-blue-800">Modifier</button>
-                <button @click="deleteUser(user._id)" class="text-red-600 hover:text-red-800">Supprimer</button>
-                <button @click="deactivateUser(user._id)" class="text-amber-600 hover:text-amber-800">
-                  {{ user.actif ? 'Désactiver' : 'Activer' }}
+              <td class="text-right space-x-1 whitespace-nowrap">
+                <button @click="openDetailsModal(user)" class="p-2 text-[var(--success)] hover:bg-[var(--success)]/10 rounded-lg transition-colors" title="Détails">
+                  <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+                <button @click="openEditModal(user)" class="p-2 text-[var(--primary)] hover:bg-[var(--bg)] rounded-lg transition-colors" title="Modifier">
+                  <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button @click="deleteUser(user._id)" class="p-2 text-[var(--danger)] hover:bg-[var(--danger)]/10 rounded-lg transition-colors" title="Supprimer">
+                  <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
+                </button>
+                <button @click="deactivateUser(user._id)" :class="user.actif ? 'text-[var(--warn)]' : 'text-[var(--success)]'" class="p-2 hover:bg-[var(--bg)] rounded-lg transition-colors" :title="user.actif ? 'Désactiver' : 'Activer'">
+                  <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/></svg>
                 </button>
               </td>
             </tr>
