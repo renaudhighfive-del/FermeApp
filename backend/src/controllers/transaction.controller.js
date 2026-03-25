@@ -1,4 +1,5 @@
 import Transaction from "../models/Transaction.js";
+import Campaign from "../models/Campaign.js";
 
 export const createTransaction = async (req, res) => {
   try {
@@ -28,6 +29,23 @@ export const createTransaction = async (req, res) => {
     });
 
     await transaction.save();
+
+    // Mettre à jour les statistiques de la campagne si liée
+    if (campaign) {
+      const camp = await Campaign.findById(campaign);
+      if (camp) {
+        if (type === "Dépense") {
+          camp.spent = (camp.spent || 0) + Number(amount);
+          if (category === "Aliment") {
+            camp.feedCost = (camp.feedCost || 0) + Number(amount);
+          }
+        } else if (type === "Revenu") {
+          camp.actualRevenue = (camp.actualRevenue || 0) + Number(amount);
+        }
+        await camp.save();
+      }
+    }
+
     res.status(201).json(transaction);
   } catch (error) {
     res.status(400).json({ error: error.message });

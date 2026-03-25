@@ -11,7 +11,7 @@ import {
 
 const router = express.Router();
 
-router.post("/", requireAuth, autoriser("admin"), createCampaign);
+router.post("/", requireAuth, autoriser("admin", "gerant"), createCampaign);
 router.get("/", requireAuth, getCampaigns);
 router.get("/:id/stats", requireAuth, getCampaignStats);
 router.get("/:id", requireAuth, getCampaign);

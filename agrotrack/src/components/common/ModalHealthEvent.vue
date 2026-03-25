@@ -47,6 +47,17 @@
           <textarea class="form-input" v-model="form.description" rows="3" placeholder="Détails de l'événement..."></textarea>
         </div>
 
+        <!-- Assignation (Optionnel pour Gérant) -->
+        <div class="form-group">
+          <label class="form-label">Assigner à (Agent)</label>
+          <select class="form-input" v-model="form.assignedTo">
+            <option value="">-- Laisser vide (Non assigné) --</option>
+            <option v-for="agent in campaignAgents" :key="agent._id || agent.id" :value="agent._id || agent.id">
+              {{ agent.name }} (Agent)
+            </option>
+          </select>
+        </div>
+
         <!-- Statut (pour certains types) -->
         <div class="form-group" v-if="form.type === 'Vaccination' || form.type === 'Traitement'">
           <label class="form-label">Statut</label>
@@ -80,7 +91,7 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue'
-import { healthService, animalService } from '@/services/api'
+import { healthService, animalService, eventService } from '@/services/api'
 
 const props = defineProps({
   open: Boolean,
@@ -97,7 +108,12 @@ const form = ref({
   type: '',
   date: '',
   description: '',
-  status: 'Terminé'
+  status: 'Complété',
+  assignedTo: ''
+})
+
+const campaignAgents = computed(() => {
+  return props.campaign?.agents || []
 })
 
 // Charger les animaux quand la campagne change
@@ -140,17 +156,41 @@ async function create() {
   loading.value = true
 
   try {
-    const eventData = {
+    const healthData = {
       animal: form.value.animalId,
       campaign: props.campaign._id || props.campaign.id,
       type: form.value.type,
       description: form.value.description,
       date: form.value.date,
-      status: form.value.status || 'Complété'
+      status: form.value.status || 'Complété',
+      assignedTo: form.value.assignedTo || null
     }
 
-    const response = await healthService.create(eventData)
-    emit('created', response.data)
+    // 1. Enregistrer dans HealthRecord (historique médical)
+    const healthRes = await healthService.create(healthData)
+
+    // 2. Créer une tâche correspondante dans Event (pour les agents)
+    const eventTypeMap = {
+      'Vaccination': 'vaccination',
+      'Traitement': 'treatment',
+      'Diagnostic': 'other',
+      'Observation': 'other'
+    }
+
+    const eventData = {
+      campaign: props.campaign._id || props.campaign.id,
+      animal: form.value.animalId,
+      type: eventTypeMap[form.value.type] || 'other',
+      description: `[Santé] ${form.value.description}`,
+      date: form.value.date,
+      status: form.value.status === 'Complété' ? 'done' : 'pending',
+      assignedTo: form.value.assignedTo || null
+    }
+
+    // Utiliser la route spécifique pour le gérant si l'utilisateur est gérant
+    await eventService.createGerant(eventData)
+
+    emit('created', healthRes.data)
     emit('close')
 
     // Reset form
@@ -159,7 +199,8 @@ async function create() {
       type: '',
       date: '',
       description: '',
-      status: 'Complété'
+      status: 'Complété',
+      assignedTo: ''
     }
   } catch (err) {
     error.value = err.response?.data?.error || 'Erreur lors de l\'enregistrement de l\'événement'

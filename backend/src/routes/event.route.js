@@ -12,14 +12,16 @@ const router = Router();
 // Toutes les routes nécessitent d'être connecté
 router.use(requireAuth);
 
+// --- Routes publiques (tous les rôles) ---
+router.get('/', getAllEvents);
+
 // --- Routes Admin ---
-router.get('/',      autoriser('admin'), getAllEvents);
-router.post('/',     autoriser('admin'), createEvent);
-router.put('/:id',   autoriser('admin'), updateEvent);
+router.post('/', autoriser('admin'), createEvent);
+router.put('/:id', autoriser('admin'), updateEvent);
 router.delete('/:id', autoriser('admin'), deleteEvent);
 
-// --- Routes Gérant (peut aussi voir/créer pour ses campagnes) ---
-router.get('/gerant', autoriser('gerant'), getAllEvents);
+// --- Routes Gérant (peut créer pour ses campagnes) ---
 router.post('/gerant', autoriser('gerant'), createEvent);
+router.put('/gerant/:id', autoriser('gerant'), updateEvent);
 
 export default router;

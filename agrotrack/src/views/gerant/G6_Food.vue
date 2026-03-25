@@ -8,13 +8,22 @@
         <p class="page-subtitle" v-else>Aucune campagne active</p>
       </div>
       <div class="page-actions">
+        <select v-if="activeCampaigns.length > 1" class="filter-select" v-model="selectedCampaignId" style="margin-right: 10px;">
+          <option v-for="c in activeCampaigns" :key="c._id || c.id" :value="c._id || c.id">
+            {{ c.name }}
+          </option>
+        </select>
         <button class="btn btn-outline btn-sm">+ Commander</button>
         <button class="btn btn-primary btn-sm">+ Distribution</button>
       </div>
     </div>
   </div>
 
-  <div v-if="!campaign" class="card" style="text-align: center; padding: 40px;">
+  <div v-if="loading" class="card" style="text-align: center; padding: 40px;">
+    <p class="text-soft">Chargement...</p>
+  </div>
+
+  <div v-else-if="!campaign" class="card" style="text-align: center; padding: 40px;">
     <p class="text-soft" style="font-size: 16px;">Aucune campagne active</p>
     <RouterLink to="/gerant/campaigns" class="btn btn-primary" style="margin-top: 20px;">Voir les campagnes</RouterLink>
   </div>
@@ -49,11 +58,40 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useGerantStore } from '@/stores/gerant'
 
 const gerantStore = useGerantStore()
-const campaign = computed(() => gerantStore.activeCampaigns[0] || null)
+const activeCampaigns = computed(() => gerantStore.activeCampaigns)
+const selectedCampaignId = ref('')
+const loading = ref(false)
+
+const campaign = computed(() => {
+  if (selectedCampaignId.value) {
+    return activeCampaigns.value.find(c => (c._id || c.id) === selectedCampaignId.value) || activeCampaigns.value[0] || null
+  }
+  return activeCampaigns.value[0] || null
+})
+
+onMounted(async () => {
+  await loadData()
+})
+
+async function loadData() {
+  loading.value = true
+  try {
+    await gerantStore.fetchGerantFarms()
+    await gerantStore.fetchGerantCampaigns()
+    
+    if (activeCampaigns.value.length > 0 && !selectedCampaignId.value) {
+      selectedCampaignId.value = activeCampaigns.value[0]._id || activeCampaigns.value[0].id
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement des données:', error)
+  } finally {
+    loading.value = false
+  }
+}
 
 function formatCurrency(value) {
   if (!value) return '0 FCFA'

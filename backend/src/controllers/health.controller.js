@@ -11,6 +11,7 @@ export const createHealthRecord = async (req, res) => {
       date,
       nextScheduledDate,
       status,
+      assignedTo,
       notes,
     } = req.body;
 
@@ -22,6 +23,7 @@ export const createHealthRecord = async (req, res) => {
       date: date || new Date(),
       nextScheduledDate,
       status: status || "Complété",
+      assignedTo,
       notes,
       adminName: req.user?.name,
     });
@@ -46,6 +48,7 @@ export const getHealthRecords = async (req, res) => {
     const records = await HealthRecord.find(filter)
       .populate("animal")
       .populate("campaign")
+      .populate("assignedTo", "name email")
       .sort({ date: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -105,6 +108,7 @@ export const getUpcomingVaccinations = async (req, res) => {
     const records = await HealthRecord.find(filter)
       .populate("animal")
       .populate("campaign")
+      .populate("assignedTo", "name email")
       .sort({ nextScheduledDate: 1 });
 
     res.json(records);

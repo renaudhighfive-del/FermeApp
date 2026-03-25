@@ -39,10 +39,13 @@ export const useGerantStore = defineStore("gerant", () => {
       
       // Filtrer les fermes où l'utilisateur est manager ou propriétaire
       farms.value = allFarms.filter((farm) => {
-        const isManager = farm.managers?.some((m) => 
-          (m._id || m.id || m) === userId
-        );
-        const isOwner = (farm.owner?._id || farm.owner?.id || farm.owner) === userId;
+        const userIdStr = String(userId);
+        const isManager = farm.managers?.some((m) => {
+          const mId = String(m._id || m.id || m);
+          return mId === userIdStr;
+        });
+        const ownerId = String(farm.owner?._id || farm.owner?.id || farm.owner);
+        const isOwner = ownerId === userIdStr;
         return isManager || isOwner;
       });
     } catch (err) {
@@ -81,12 +84,14 @@ export const useGerantStore = defineStore("gerant", () => {
         const response = await campaignService.getAll({ limit: 100 });
         const allServerCampaigns = response.data.campaigns || response.data;
         if (Array.isArray(allServerCampaigns)) {
+          const userIdStr = String(userId);
           allServerCampaigns.forEach(campaign => {
             // Ajouter si l'utilisateur est manager de la campagne et pas déjà dans la liste
-            const isManager = campaign.managers?.some(m => 
-              (m._id || m.id || m) === userId
-            );
-            const alreadyAdded = allCampaigns.find(c => (c._id || c.id) === (campaign._id || campaign.id));
+            const isManager = campaign.managers?.some(m => {
+              const mId = String(m._id || m.id || m);
+              return mId === userIdStr;
+            });
+            const alreadyAdded = allCampaigns.find(c => String(c._id || c.id) === String(campaign._id || campaign.id));
             if (isManager && !alreadyAdded) {
               allCampaigns.push(campaign);
             }

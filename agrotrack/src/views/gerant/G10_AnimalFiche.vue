@@ -153,7 +153,29 @@
       <div v-if="activeTab === 'history'" class="tab-pane">
         <div class="card">
           <div class="card-title">Historique des événements</div>
-          <div class="empty-state">
+          <div v-if="events.length > 0" class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Description</th>
+                  <th>Assigné à</th>
+                  <th>Statut</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="event in events" :key="event._id">
+                  <td class="text-soft text-sm">{{ formatDate(event.date || event.createdAt) }}</td>
+                  <td><span class="badge" :class="getEventBadgeClass(event.type)">{{ event.type }}</span></td>
+                  <td>{{ event.description }}</td>
+                  <td class="text-soft text-sm">{{ event.assignedTo?.name || '-' }}</td>
+                  <td><span class="badge" :class="event.status === 'done' ? 'badge-sain' : 'badge-observation'">{{ event.status }}</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-else class="empty-state">
             <svg width="40" height="40" fill="none" stroke="#E8D9C5" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
             <p>Aucun événement enregistré</p>
           </div>
@@ -185,7 +207,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { animalService } from '@/services/api'
+import { animalService, campaignService, eventService } from '@/services/api'
 import QRCode from 'qrcode'
 
 const router = useRouter()
@@ -193,6 +215,7 @@ const route = useRoute()
 
 const animal = ref(null)
 const campaign = ref(null)
+const events = ref([])
 const loading = ref(false)
 const error = ref(null)
 const activeTab = ref('general')
@@ -214,8 +237,14 @@ async function loadAnimalData() {
 
     // Charger la campagne associée si nécessaire
     if (animal.value.campaign) {
-      // On pourrait charger les détails de la campagne ici
+      const campaignId = typeof animal.value.campaign === 'object' ? animal.value.campaign._id : animal.value.campaign;
+      const campRes = await campaignService.getById(campaignId);
+      campaign.value = campRes.data;
     }
+
+    // Charger l'historique des événements
+    const eventsRes = await eventService.getAll({ animal: animalId, limit: 100 });
+    events.value = eventsRes.data.events || [];
   } catch (err) {
     error.value = 'Erreur lors du chargement de l\'animal'
     console.error(err)
@@ -232,12 +261,24 @@ function formatDate(date) {
 
 function getHealthClass(status) {
   const classes = {
-    'Sain': 'badge-success',
-    'Malade': 'badge-danger',
-    'Suspect': 'badge-warning',
-    'Inconnu': 'badge-secondary'
+    'Sain': 'badge-sain',
+    'Malade': 'badge-anomalie',
+    'Suspect': 'badge-observation',
+    'Décédé': 'badge-urgent'
   }
-  return classes[status] || 'badge-secondary'
+  return classes[status] || 'badge-inactif'
+}
+
+function getEventBadgeClass(type) {
+  const classes = {
+    'vaccination': 'badge-encours',
+    'treatment': 'badge-pis',
+    'mortality': 'badge-anomalie',
+    'feeding': 'badge-vol',
+    'weight': 'badge-prep',
+    'other': 'badge-inactif'
+  }
+  return classes[type] || 'badge-inactif'
 }
 
 async function showQRCode() {

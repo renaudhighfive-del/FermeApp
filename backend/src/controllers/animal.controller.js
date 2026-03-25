@@ -59,7 +59,10 @@ export const getAnimals = async (req, res) => {
 
 export const getAnimal = async (req, res) => {
   try {
-    const animal = await Animal.findById(req.params.id).populate("campaign");
+    const animal = await Animal.findById(req.params.id).populate({
+      path: "campaign",
+      populate: { path: "agents managers", select: "name email role" }
+    });
     if (!animal) return res.status(404).json({ error: "Animal not found" });
     res.json(animal);
   } catch (error) {

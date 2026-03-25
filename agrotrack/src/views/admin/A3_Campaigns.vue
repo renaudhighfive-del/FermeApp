@@ -1,144 +1,118 @@
 <template>
-  <div class="space-y-6 p-6">
+  <div class="space-y-6">
     <!-- Header -->
-    <div class="flex justify-between items-center">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
-        <h1 class="text-3xl font-bold">Gestion des Campagnes</h1>
-        <p class="text-slate-600">Gérez toutes vos campagnes d'élevage</p>
+        <h1 class="text-2xl sm:text-3xl font-bold text-[var(--text)]">Gestion des Campagnes</h1>
+        <p class="text-[var(--soft)]">Gérez toutes vos campagnes d'élevage</p>
       </div>
       <button 
         @click="openCreateModal" 
-        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg flex items-center gap-2"
+        class="btn btn-primary"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M12 4v16m8-8H4" />
         </svg>
-        Nouvelle Campagne
+        <span>Nouvelle Campagne</span>
       </button>
     </div>
 
-    <!-- Loading State -->
-    <div v-if="admin.loading" class="flex justify-center items-center py-12">
-      <div class="text-slate-600">
-        <div class="inline-block animate-spin mr-2">⟳</div>
-        Chargement...
-      </div>
-    </div>
-
-    <!-- Error State -->
-    <div v-else-if="admin.error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-      {{ admin.error }}
-    </div>
-
     <!-- Filters -->
-    <div v-else class="bg-white p-4 rounded-lg space-y-3">
-      <div class="grid grid-cols-4 gap-4">
-        <input 
-          v-model="filters.search" 
-          placeholder="Rechercher par nom..." 
-          class="px-3 py-2 border rounded"
-        />
-        <select v-model="filters.status" class="px-3 py-2 border rounded">
-          <option value="">Tous les statuts</option>
-          <option value="En cours">En cours</option>
-          <option value="Terminée">Terminée</option>
-          <option value="Préparation">Préparation</option>
-        </select>
-        <select v-model="filters.animalType" class="px-3 py-2 border rounded">
-          <option value="">Tous les types</option>
-          <option value="Volaille">Volaille</option>
-          <option value="Bétail">Bétail</option>
-          <option value="Pisciculture">Pisciculture</option>
-        </select>
+    <div class="card p-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="form-group mb-0">
+          <input 
+            v-model="filters.search" 
+            placeholder="Rechercher par nom..." 
+            class="form-input"
+          />
+        </div>
+        <div class="form-group mb-0">
+          <select v-model="filters.status" class="form-input">
+            <option value="">Tous les statuts</option>
+            <option value="En cours">En cours</option>
+            <option value="Terminée">Terminée</option>
+            <option value="Préparation">Préparation</option>
+          </select>
+        </div>
+        <div class="form-group mb-0">
+          <select v-model="filters.animalType" class="form-input">
+            <option value="">Tous les types</option>
+            <option value="Volaille">Volaille</option>
+            <option value="Bétail">Bétail</option>
+            <option value="Pisciculture">Pisciculture</option>
+          </select>
+        </div>
         <button 
           @click="resetFilters" 
-          class="px-3 py-2 bg-gray-200 hover:bg-gray-300 rounded"
+          class="btn btn-ghost h-[42px]"
         >
           Réinitialiser
         </button>
       </div>
     </div>
 
+    <!-- Loading State -->
+    <div v-if="admin.loading" class="flex flex-col items-center justify-center py-20 gap-4">
+      <div class="w-10 h-10 border-4 border-[var(--accent)]/30 border-t-[var(--accent)] rounded-full animate-spin"></div>
+      <p class="text-[var(--soft)]">Chargement des campagnes...</p>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="admin.error" class="card bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-900/30 text-red-700 dark:text-red-400 p-4">
+      {{ admin.error }}
+    </div>
+
     <!-- Main Content -->
-    <div v-if="!admin.loading && filteredCampaigns.length > 0" class="grid grid-cols-1 gap-4">
-      <!-- Table View -->
-      <div class="bg-white rounded-lg overflow-hidden shadow">
-        <table class="w-full">
-          <thead class="bg-gray-50 border-b">
+    <div v-if="!admin.loading && filteredCampaigns.length > 0" class="table-container mt-0">
+      <div class="overflow-x-auto">
+        <table>
+          <thead>
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Nom</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Type</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Statut</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Animaux</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Budget</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Mortalité</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
+              <th>Nom</th>
+              <th class="hide-mobile">Type</th>
+              <th>Statut</th>
+              <th class="hide-mobile">Animaux</th>
+              <th class="hide-mobile">Budget</th>
+              <th class="text-right">Actions</th>
             </tr>
           </thead>
-          <tbody class="divide-y">
-            <tr v-for="campaign in filteredCampaigns" :key="campaign._id" class="hover:bg-gray-50">
-              <td class="px-6 py-4">
-                <div class="font-medium text-gray-900">{{ campaign.name }}</div>
+          <tbody>
+            <tr v-for="campaign in filteredCampaigns" :key="campaign._id">
+              <td>
+                <div class="font-bold text-[var(--text)]">{{ campaign.name }}</div>
+                <div class="lg:hidden text-[10px] text-[var(--soft)] uppercase font-bold mt-0.5">{{ campaign.animalType }}</div>
               </td>
-              <td class="px-6 py-4">
-                <span class="text-sm text-gray-600">{{ campaign.animalType }}</span>
+              <td class="hide-mobile">
+                <span class="text-sm font-medium text-[var(--soft)]">{{ campaign.animalType }}</span>
               </td>
-              <td class="px-6 py-4">
+              <td>
                 <span 
                   :class="{
-                    'bg-blue-100 text-blue-800': campaign.status === 'En cours',
-                    'bg-green-100 text-green-800': campaign.status === 'Terminée',
-                    'bg-yellow-100 text-yellow-800': campaign.status === 'Préparation',
+                    'bg-[var(--primary)]/10 text-[var(--primary)] dark:bg-[var(--accent)]/10 dark:text-[var(--accent)]': campaign.status === 'En cours',
+                    'bg-[var(--success)]/10 text-[var(--success)]': campaign.status === 'Terminée',
+                    'bg-[var(--warn)]/10 text-[var(--warn)]': campaign.status === 'Préparation',
                   }"
-                  class="px-3 py-1 rounded-full text-xs font-medium"
+                  class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
                 >
                   {{ campaign.status }}
                 </span>
               </td>
-              <td class="px-6 py-4">
-                <div class="text-sm">
-                  <span class="font-medium">{{ campaign.currentAnimalCount }}</span>
-                  <span class="text-gray-500">/ {{ campaign.initialAnimalCount }}</span>
+              <td class="hide-mobile">
+                <div class="text-sm font-mono font-medium">
+                  {{ campaign.currentAnimalCount }} / {{ campaign.initialAnimalCount }}
                 </div>
               </td>
-              <td class="px-6 py-4">
-                <span class="font-medium">{{ campaign.budget.toLocaleString() }} F</span>
+              <td class="hide-mobile">
+                <div class="text-sm font-mono font-medium">{{ campaign.budget?.toLocaleString() }} F</div>
               </td>
-              <td class="px-6 py-4">
-                <div class="flex items-center gap-2">
-                  <div 
-                    :class="{
-                      'text-red-600': campaign.mortality > 10,
-                      'text-yellow-600': campaign.mortality > 5 && campaign.mortality <= 10,
-                      'text-green-600': campaign.mortality <= 5,
-                    }"
-                    class="font-medium"
-                  >
-                    {{ campaign.mortality }}%
-                  </div>
-                </div>
-              </td>
-              <td class="px-6 py-4">
-                <div class="flex gap-2">
-                  <button 
-                    @click="openDetailsModal(campaign)"
-                    class="text-green-600 hover:text-green-800 text-sm font-medium"
-                  >
-                    Voir Détails
-                  </button>
-                  <button 
-                    @click="openEditModal(campaign)"
-                    class="text-blue-600 hover:text-blue-800 text-sm"
-                  >
-                    Éditer
-                  </button>
-                  <button 
-                    @click="deleteCampaign(campaign._id)"
-                    class="text-red-600 hover:text-red-800 text-sm"
-                  >
-                    Supprimer
-                  </button>
-                </div>
+              <td class="text-right space-x-1 whitespace-nowrap">
+                <button @click="openEditModal(campaign)" class="p-2 text-[var(--primary)] hover:bg-[var(--bg)] rounded-lg transition-colors" title="Modifier">
+                  <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button @click="deleteCampaign(campaign._id)" class="p-2 text-[var(--danger)] hover:bg-[var(--danger)]/10 rounded-lg transition-colors" title="Supprimer">
+                  <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
+                </button>
               </td>
             </tr>
           </tbody>
@@ -147,132 +121,86 @@
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="!admin.loading && filteredCampaigns.length === 0" class="bg-gray-50 rounded-lg p-12 text-center">
-      <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div v-else-if="!admin.loading && filteredCampaigns.length === 0" class="card p-12 text-center">
+      <svg class="mx-auto h-12 w-12 text-[var(--soft)] mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
       </svg>
-      <h3 class="mt-2 text-lg font-medium text-gray-900">Aucune campagne</h3>
-      <p class="mt-1 text-gray-500">Créez votre première campagne pour commencer</p>
+      <h3 class="mt-2 text-lg font-bold text-[var(--text)]">Aucune campagne</h3>
+      <p class="mt-1 text-[var(--soft)]">Créez votre première campagne pour commencer</p>
     </div>
 
     <!-- Modal Create/Edit -->
-    <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-        <h2 class="text-2xl font-bold mb-4">
-          {{ isEditing ? 'Modifier Campagne' : 'Nouvelle Campagne' }}
-        </h2>
+    <div v-if="showModal" class="fixed inset-0 z-[1100] flex items-center justify-center p-4">
+      <div class="fixed inset-0 bg-black/60 backdrop-blur-sm" @click="showModal = false"></div>
+      <div class="card max-w-lg w-full relative z-10 animate-fadeIn">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-bold text-[var(--text)]">
+            {{ isEditing ? 'Modifier Campagne' : 'Nouvelle Campagne' }}
+          </h2>
+          <button @click="showModal = false" class="text-[var(--soft)] hover:text-[var(--text)]">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
 
         <form @submit.prevent="submitForm" class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Nom de la campagne *
-            </label>
+          <div class="form-group">
+            <label class="form-label">Nom de la campagne *</label>
             <input 
               v-model="form.name" 
               type="text"
               required
-              class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="form-input"
               placeholder="Ex: Volaille été 2024"
             />
           </div>
 
-          <div v-if="!isEditing">
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Type d'animal *
-            </label>
-            <select 
-              v-model="form.animalType" 
-              required
-              class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="Volaille">Volaille</option>
-              <option value="Bétail">Bétail</option>
-              <option value="Pisciculture">Pisciculture</option>
-            </select>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="form-group">
+              <label class="form-label">Type d'animal *</label>
+              <select v-model="form.animalType" required class="form-input">
+                <option value="Volaille">Volaille</option>
+                <option value="Bétail">Bétail</option>
+                <option value="Pisciculture">Pisciculture</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nombre initial *</label>
+              <input v-model.number="form.initialAnimalCount" type="number" min="1" required class="form-input" placeholder="500" />
+            </div>
           </div>
 
-          <div v-if="!isEditing">
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Nombre initial d'animaux *
-            </label>
-            <input 
-              v-model.number="form.initialAnimalCount" 
-              type="number"
-              min="1"
-              required
-              class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="500"
-            />
+          <div v-if="isEditing" class="form-group">
+            <label class="form-label">Nombre actuel d'animaux *</label>
+            <input v-model.number="form.currentAnimalCount" type="number" min="0" required class="form-input" />
           </div>
 
-          <div v-if="isEditing">
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Nombre actuel d'animaux *
-            </label>
-            <input 
-              v-model.number="form.currentAnimalCount" 
-              type="number"
-              min="0"
-              required
-              class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          <div class="form-group">
+            <label class="form-label">Budget (FCFA) *</label>
+            <input v-model.number="form.budget" type="number" min="0" required class="form-input" placeholder="5000000" />
           </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Budget (FCFA) *
-            </label>
-            <input 
-              v-model.number="form.budget" 
-              type="number"
-              min="0"
-              required
-              class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="5000000"
-            />
+          <div v-if="isEditing" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="form-group">
+              <label class="form-label">Statut</label>
+              <select v-model="form.status" class="form-input">
+                <option value="Préparation">Préparation</option>
+                <option value="En cours">En cours</option>
+                <option value="Terminée">Terminée</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Taux de mortalité (%)</label>
+              <input v-model.number="form.mortality" type="number" min="0" max="100" class="form-input" />
+            </div>
           </div>
 
-          <div v-if="isEditing">
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Statut
-            </label>
-            <select 
-              v-model="form.status"
-              class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="Préparation">Préparation</option>
-              <option value="En cours">En cours</option>
-              <option value="Terminée">Terminée</option>
-            </select>
-          </div>
-
-          <div v-if="isEditing">
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Taux de mortalité (%) 
-            </label>
-            <input 
-              v-model.number="form.mortality" 
-              type="number"
-              min="0"
-              max="100"
-              class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div class="flex gap-2 justify-end pt-4 border-t">
-            <button 
-              type="button"
-              @click="closeModal"
-              class="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg"
-            >
-              Annuler
-            </button>
-            <button 
-              type="submit"
-              :disabled="isSubmitting"
-              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg"
-            >
-              {{ isSubmitting ? 'Chargement...' : (isEditing ? 'Mettre à jour' : 'Créer') }}
+          <div class="flex gap-3 justify-end pt-6 border-t border-[var(--border)]">
+            <button type="button" @click="closeModal" class="btn btn-ghost">Annuler</button>
+            <button type="submit" :disabled="isSubmitting" class="btn btn-primary">
+              <span v-if="isSubmitting" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></span>
+              {{ isEditing ? 'Mettre à jour' : 'Créer la campagne' }}
             </button>
           </div>
         </form>

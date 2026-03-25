@@ -71,7 +71,7 @@
         </div>
       </div>
       <div class="campaign-card-actions">
-        <RouterLink :to="'/gerant/campaigns/' + (campaign._id || campaign._id)" class="btn btn-primary btn-sm">Voir détail</RouterLink>
+        <RouterLink :to="'/gerant/campaigns/' + (campaign._id || campaign.id)" class="btn btn-primary btn-sm">Voir détail</RouterLink>
         <button class="btn btn-outline btn-sm" @click="editCampaign(campaign)">Modifier</button>
       </div>
     </div>
@@ -141,7 +141,7 @@ function getDaysRemaining(startDate) {
   if (!startDate) return 0
   const start = new Date(startDate)
   const today = new Date()
-  const diffTime = start.getTime() - today.getTime()
+  const diffTime = today.getTime() - start.getTime()
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
   return Math.max(0, diffDays)
 }

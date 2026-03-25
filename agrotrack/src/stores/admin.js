@@ -24,6 +24,7 @@ export const useAdminStore = defineStore("admin", () => {
   const sales = ref([]);
   const reports = ref([]);
   const events = ref([]);
+  const stats = ref(null);
   const loading = ref(false);
   const error = ref(null);
 
@@ -390,7 +391,16 @@ export const useAdminStore = defineStore("admin", () => {
     }
   };
 
-    return {
+  const fetchStats = async () => {
+    try {
+      const response = await settingsService.getDashboardStats();
+      stats.value = response.data;
+    } catch (err) {
+      error.value = err.message;
+    }
+  };
+
+  return {
     campaigns,
     farms,
     animals,
@@ -436,5 +446,7 @@ export const useAdminStore = defineStore("admin", () => {
     createEvent,
     updateEvent,
     deleteEvent,
+    stats,
+    fetchStats,
   };
 });

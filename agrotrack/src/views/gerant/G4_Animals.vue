@@ -60,17 +60,25 @@
           >
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" /></svg
-          ><input class="search-input" placeholder="Rechercher par ID..." />
+          ><input class="search-input" placeholder="Rechercher par ID..." v-model="searchQuery" />
         </div>
-        <select class="filter-select">
-          <option>Tous les lots</option>
-          <option v-for="loc in uniqueLocations" :key="loc">{{ loc }}</option>
+        
+        <!-- Filtre Campagne -->
+        <select v-if="activeCampaigns.length > 1" class="filter-select" v-model="selectedCampaignId">
+          <option v-for="c in activeCampaigns" :key="c._id || c.id" :value="c._id || c.id">
+            {{ c.name }}
+          </option>
         </select>
-        <select class="filter-select">
-          <option>Tous statuts santé</option>
-          <option>Sain</option>
-          <option>Malade</option>
-          <option>Suspect</option>
+
+        <select class="filter-select" v-model="selectedLocation">
+          <option value="">Tous les lots</option>
+          <option v-for="loc in uniqueLocations" :key="loc" :value="loc">{{ loc }}</option>
+        </select>
+        <select class="filter-select" v-model="selectedHealth">
+          <option value="">Tous statuts santé</option>
+          <option value="Sain">Sain</option>
+          <option value="Malade">Malade</option>
+          <option value="Suspect">Suspect</option>
         </select>
       </div>
       <div class="card">
@@ -87,7 +95,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="a in animals" :key="a._id || a.id">
+              <tr v-for="a in filteredAnimals" :key="a._id || a.id">
                 <td class="fw-600" style="color: var(--primary)">
                   {{ a.idNumber || a._id }}
                 </td>
@@ -128,18 +136,56 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
+import { useRouter } from "vue-router";
 import { useGerantStore } from "@/stores/gerant";
 import { animalService } from "@/services/api";
 import ModalAddAnimal from "@/components/common/ModalAddAnimal.vue";
 
+const router = useRouter();
 const gerantStore = useGerantStore();
-const campaign = computed(() => gerantStore.activeCampaigns[0] || null);
+
+const activeCampaigns = computed(() => gerantStore.activeCampaigns);
+const selectedCampaignId = ref("");
+
+const campaign = computed(() => {
+  if (selectedCampaignId.value) {
+    return (
+      activeCampaigns.value.find(
+        (c) => (c._id || c.id) === selectedCampaignId.value
+      ) ||
+      activeCampaigns.value[0] ||
+      null
+    );
+  }
+  return activeCampaigns.value[0] || null;
+});
+
 const animals = ref([]);
 const loading = ref(false);
 const showAddModal = ref(false);
 
+const searchQuery = ref("");
+const selectedLocation = ref("");
+const selectedHealth = ref("");
+
 onMounted(async () => {
+  await loadData();
+});
+
+async function loadData() {
+  await gerantStore.fetchGerantFarms();
+  await gerantStore.fetchGerantCampaigns();
+
+  if (activeCampaigns.value.length > 0 && !selectedCampaignId.value) {
+    selectedCampaignId.value =
+      activeCampaigns.value[0]._id || activeCampaigns.value[0].id;
+  }
+
+  await loadAnimals();
+}
+
+watch(selectedCampaignId, async () => {
   await loadAnimals();
 });
 
@@ -161,6 +207,18 @@ async function loadAnimals() {
   }
 }
 
+const filteredAnimals = computed(() => {
+  return animals.value.filter((a) => {
+    const id = String(a.idNumber || a._id || "").toLowerCase();
+    const query = searchQuery.value.toLowerCase();
+    const matchesSearch = searchQuery.value ? id.includes(query) : true;
+    
+    const matchesLocation = selectedLocation.value && selectedLocation.value !== "Tous les lots" ? a.location === selectedLocation.value : true;
+    const matchesHealth = selectedHealth.value && selectedHealth.value !== "Tous statuts santé" ? a.healthStatus === selectedHealth.value : true;
+    return matchesSearch && matchesLocation && matchesHealth;
+  });
+});
+
 const uniqueLots = computed(() => {
   const lots = animals.value.map((a) => a.location).filter(Boolean);
   return [...new Set(lots)];
@@ -173,14 +231,13 @@ function getHealthClass(status) {
     Sain: "badge-sain",
     Malade: "badge-anomalie",
     Suspect: "badge-observation",
-    Décédé: "badge-danger",
+    Décédé: "badge-urgent",
   };
   return classes[status] || "badge-inactif";
 }
 
 function viewAnimalFiche(animal) {
-  // Navigation vers la fiche animal
-  window.location.href = `/gerant/animal/${animal._id || animal.id}`;
+  router.push(`/gerant/animal/${animal._id || animal.id}`);
 }
 
 const handleAddModalClose = async () => {
