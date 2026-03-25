@@ -298,11 +298,11 @@ tr:hover td { background: rgba(0,0,0,0.02); }
 .btn-ghost:hover { background: var(--bg); color: var(--text); }
 
 @media (max-width: 640px) {
-  .btn { width: 100%; justify-content: center; }
-}
-  color: var(--primary);
-  font-weight: 600;
-}
+  .btn { 
+    width: 100%; justify-content: center; 
+    color: var(--primary);
+    font-weight: 600;
+  }
 .sidebar-item.active svg { stroke: var(--accent); }
 .sidebar-item svg { flex-shrink: 0; stroke: var(--soft); transition: stroke 0.15s; }
 .sidebar-item:hover svg { stroke: var(--text); }
@@ -960,3 +960,4 @@ tr:hover td { background: rgba(0,0,0,0.02); }
 .text-center { text-align: center; }
 .text-right { text-align: right; }
 .divider { height: 1px; background: var(--border); margin: 16px 0; }
+}

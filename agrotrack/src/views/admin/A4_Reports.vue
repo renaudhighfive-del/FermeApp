@@ -143,7 +143,29 @@ const exportToPDF = () => {
     margin: 10,
     filename: `Rapports_Globaux_${new Date().toISOString().split('T')[0]}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, logging: false },
+    html2canvas: { 
+      scale: 2, 
+      useCORS: true, 
+      logging: false,
+      onclone: (clonedDoc) => {
+        // Force light mode
+        clonedDoc.documentElement.classList.remove('dark')
+        clonedDoc.documentElement.classList.add('light')
+        
+        const style = clonedDoc.createElement('style')
+        style.innerHTML = `
+          * { 
+            color-scheme: light !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            background-image: none !important;
+          }
+          #reports-page { background-color: #FDF6EC !important; padding: 20px !important; }
+          .card { background-color: #FFFFFF !important; }
+        `
+        clonedDoc.head.appendChild(style)
+      }
+    },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
   }
 

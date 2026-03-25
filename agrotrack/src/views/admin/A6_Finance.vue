@@ -224,7 +224,41 @@ const exportToPDF = async () => {
       margin: 10,
       filename: `Finance-AgroTrack-${new Date().toLocaleDateString('fr-FR')}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
+      html2canvas: { 
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        onclone: (clonedDoc) => {
+          // Force light mode
+          clonedDoc.documentElement.classList.remove('dark')
+          clonedDoc.documentElement.classList.add('light')
+          
+          const style = clonedDoc.createElement('style')
+          style.innerHTML = `
+            * { 
+              color-scheme: light !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              background-image: none !important;
+            }
+            :root {
+              --primary: #3D2B1F !important;
+              --accent: #F2B705 !important;
+              --bg: #FDF6EC !important;
+              --card: #FFFFFF !important;
+              --text: #1A1008 !important;
+              --soft: #7A6652 !important;
+              --border: #E8D9C5 !important;
+              --success: #2D6A4F !important;
+              --warn: #E07B39 !important;
+              --danger: #D62828 !important;
+            }
+            #finance-report { background-color: #FDF6EC !important; padding: 20px !important; }
+            .card { background-color: #FFFFFF !important; }
+          `
+          clonedDoc.head.appendChild(style)
+        }
+      },
       jsPDF: { orientation: 'landscape', unit: 'mm', format: 'a4' }
     }
     
