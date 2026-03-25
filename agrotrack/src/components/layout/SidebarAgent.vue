@@ -18,11 +18,10 @@
 
     <div class="sidebar-section">
       <div class="sidebar-section-label">Navigation</div>
-      <SidebarItem icon="tasks"  label="Mes tâches" to="/agent/tasks" @click="ui.closeSidebar"/>
-      <SidebarItem icon="flag"   label="Campagnes"  to="/agent/dashboard" @click="ui.closeSidebar"/>
-      <SidebarItem icon="saisie" label="Saisie"     to="/agent/saisie" @click="ui.closeSidebar"/>
-      <SidebarItem icon="health" label="Santé"      to="/agent/health" @click="ui.closeSidebar"/>
-      <SidebarItem icon="alert"  label="Alertes"    to="/agent/alerts" @click="ui.closeSidebar"/>
+      <SidebarItem label="Tableau de bord" to="/agent/dashboard" @click="ui.closeSidebar"/>
+      <SidebarItem label="Mes tâches" to="/agent/tasks" @click="ui.closeSidebar"/>
+      <SidebarItem label="Saisie"     to="/agent/saisie" @click="ui.closeSidebar"/>
+      <SidebarItem label="Alertes"    to="/agent/alerts" @click="ui.closeSidebar"/>
     </div>
 
     <!-- User Info at Bottom -->

@@ -667,11 +667,8 @@ const submitAddAnimal = async () => {
     
     if (!animalForm.farm) {
       throw new Error('Veuillez sélectionner une ferme')
-    }
     
     if (!animalForm.campaign) {
-      throw new Error('Veuillez sélectionner une campagne')
-    }
     
     const newAnimal = {
       idNumber: animalForm.idNumber,

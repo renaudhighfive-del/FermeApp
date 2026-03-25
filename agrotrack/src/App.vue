@@ -22,10 +22,10 @@
     </RouterView>
 
     <GlobalOverlay />
-  </div>
+    <Toast />
+</div>
 </template>
-
-<style>
+    <style scoped>
     @reference "tailwindcss";
     html {
     scroll-behavior: smooth;

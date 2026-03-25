@@ -5,7 +5,7 @@
       :class="{ 'active': isActive }" 
       @click="navigate"
     >
-      <div class="w-5 h-5 flex items-center justify-center flex-shrink-0">
+      <div v-if="icon" class="w-5 h-5 flex items-center justify-center flex-shrink-0">
         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" v-html="icons[icon] || icons['grid']"></svg>
       </div>
       <span class="truncate">{{ label }}</span>
