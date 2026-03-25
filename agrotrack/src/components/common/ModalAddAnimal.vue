@@ -11,7 +11,8 @@
         </button>
       </div>
 
-      <div v-if="campaign">
+      <!-- Contenu du formulaire -->
+      <div>
         <!-- ID Animal -->
         <div class="form-group">
           <label class="form-label">ID Animal <span class="badge-required">*</span></label>
@@ -23,13 +24,9 @@
           <label class="form-label">Type <span class="badge-required">*</span></label>
           <select class="form-input" v-model="form.type">
             <option value="">-- Sélectionner un type --</option>
-            <option value="Poulet">Poulet</option>
-            <option value="Dinde">Dinde</option>
-            <option value="Canard">Canard</option>
-            <option value="Vache">Vache</option>
-            <option value="Mouton">Mouton</option>
-            <option value="Chèvre">Chèvre</option>
-            <option value="Poisson">Poisson</option>
+            <option value="Volaille">Volaille</option>
+            <option value="Bétail">Bétail</option>
+            <option value="Pisciculture">Pisciculture</option>
           </select>
         </div>
 
@@ -140,9 +137,13 @@ async function create() {
 
   try {
     const animalData = {
-      ...form.value,
       campaign: props.campaign._id || props.campaign.id,
-      weight: form.value.weight ? parseFloat(form.value.weight) : null
+      idNumber: form.value.idNumber,
+      type: form.value.type,
+      breed: form.value.breed,
+      dateOfBirth: form.value.birthDate,
+      weight: form.value.weight ? parseFloat(form.value.weight) : null,
+      location: form.value.location
     }
 
     const response = await animalService.create(animalData)
@@ -160,6 +161,7 @@ async function create() {
       healthStatus: 'Sain'
     }
   } catch (err) {
+    console.error('Erreur complète lors de l\'ajout:', err)
     error.value = err.response?.data?.error || 'Erreur lors de l\'ajout de l\'animal'
   } finally {
     loading.value = false

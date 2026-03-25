@@ -32,7 +32,7 @@ const seedDatabase = async () => {
     const gerantUser = await User.create({
       name: "Gérant Test",
       email: "gerant@fermeapp.com",
-      passwordHash: await bcryptjs.hash("Gerant123!", 10),
+      passwordHash: await bcryptjs.hash("123456789", 10),
       role: "gerant",
       actif: true,
     });

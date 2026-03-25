@@ -10,7 +10,7 @@ import {
 
 const router = express.Router();
 
-router.post("/", requireAuth, autoriser("admin"), createAnimal);
+router.post("/", requireAuth, autoriser("admin", "gerant"), createAnimal);
 router.get("/", requireAuth, getAnimals);
 router.get("/:id", requireAuth, getAnimal);
 router.put("/:id", requireAuth, updateAnimal);
