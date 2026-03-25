@@ -406,17 +406,33 @@
               </select>
             </div>
 
+            <!-- Ferme -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Ferme *</label>
+              <select 
+                v-model="animalForm.farm" 
+                required
+                @change="onFarmChange"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Sélectionner une ferme...</option>
+                <option v-for="farm in farms" :key="farm._id" :value="farm._id">
+                  {{ farm.name }}
+                </option>
+              </select>
+            </div>
+
             <!-- Campagne -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Campagne *</label>
               <select 
                 v-model="animalForm.campaign" 
                 required
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
               >
                 <option value="">Sélectionner une campagne...</option>
-                <option v-for="campaign in campaigns" :key="campaign._id" :value="campaign._id">
-                  {{ campaign.name }}
+                <option v-for="campaign in filteredCampaigns" :key="campaign._id" :value="campaign._id">
+                  {{ campaign.name }} ({{ campaign.animalType }})
                 </option>
               </select>
             </div>
@@ -509,6 +525,7 @@
 import { ref, computed, reactive, onMounted } from 'vue'
 import { useAdminStore } from '@/stores/admin'
 import { useUiStore } from '@/stores/ui'
+import { farmService } from '@/services/api'
 
 const admin = useAdminStore()
 const ui = useUiStore()
@@ -519,11 +536,13 @@ const selectedAnimal = ref(null)
 const isSubmitting = ref(false)
 const currentPage = ref(1)
 const itemsPerPage = 20
+const farms = ref([])
 
 // Form state for add
 const animalForm = reactive({
   idNumber: '',
   type: '',
+  farm: '',
   campaign: '',
   weight: 0,
   dateOfBirth: '',
@@ -553,6 +572,28 @@ const filters = reactive({
 // Computed
 const campaigns = computed(() => admin.campaigns)
 
+const filteredCampaigns = computed(() => {
+  // Temporairement, retourner toutes les campagnes pour debug
+  if (!animalForm.farm) {
+    console.log('Pas de ferme sélectionnée, retour de toutes les campagnes')
+    return admin.campaigns
+  }
+  
+  console.log('Ferme sélectionnée:', animalForm.farm)
+  console.log('Campagnes disponibles:', admin.campaigns)
+  
+  const filtered = admin.campaigns.filter(campaign => {
+    // Convertir l'ObjectId en string pour la comparaison
+    const campaignFarmId = campaign.farm?._id || campaign.farm
+    const match = campaignFarmId.toString() === animalForm.farm.toString()
+    console.log(`Campagne ${campaign.name} - Ferme: ${campaignFarmId} - Match: ${match}`)
+    return match
+  })
+  
+  console.log('Campagnes filtrées:', filtered)
+  return filtered
+})
+
 const activeCampaigns = computed(() => 
   admin.campaigns.filter(c => c.status === 'En cours')
 )
@@ -581,6 +622,20 @@ const paginatedAnimals = computed(() => {
 })
 
 // Methods
+const onFarmChange = () => {
+  // Réinitialiser la campagne quand la ferme change
+  animalForm.campaign = ''
+}
+
+const fetchFarms = async () => {
+  try {
+    const response = await farmService.getAll()
+    farms.value = response.data.farms || []
+  } catch (error) {
+    console.error('Erreur lors du chargement des fermes:', error)
+  }
+}
+
 const resetFilters = () => {
   filters.search = ''
   filters.type = ''
@@ -597,6 +652,7 @@ const closeAddModal = () => {
 const resetAnimalForm = () => {
   animalForm.idNumber = ''
   animalForm.type = ''
+  animalForm.farm = ''
   animalForm.campaign = ''
   animalForm.weight = 0
   animalForm.dateOfBirth = ''
@@ -609,6 +665,10 @@ const submitAddAnimal = async () => {
   try {
     isSubmitting.value = true
     
+    if (!animalForm.farm) {
+      throw new Error('Veuillez sélectionner une ferme')
+    }
+    
     if (!animalForm.campaign) {
       throw new Error('Veuillez sélectionner une campagne')
     }
@@ -616,6 +676,7 @@ const submitAddAnimal = async () => {
     const newAnimal = {
       idNumber: animalForm.idNumber,
       type: animalForm.type,
+      farm: animalForm.farm,
       campaign: animalForm.campaign,
       weight: animalForm.weight,
       dateOfBirth: animalForm.dateOfBirth,
@@ -708,17 +769,21 @@ const deleteAnimal = async (animalId) => {
 
 // Init
 onMounted(async () => {
-  const farmId = sessionStorage.getItem('currentFarm')
-  if (farmId) {
-    // Fetch campaigns and animals
-    await admin.fetchCampaigns({ farm: farmId })
+  try {
+    console.log('Chargement initial des données...')
+    
+    // Charger les fermes
+    await fetchFarms()
+    console.log('Fermes chargées:', farms.value)
+    
+    // Charger les campagnes et animaux
+    await admin.fetchCampaigns()
+    console.log('Campagnes chargées:', admin.campaigns)
+    
     await admin.fetchAnimals()
-  } else {
-    console.warn('Aucune ferme sélectionnée')
-    // Use default farm for testing
-    sessionStorage.setItem('currentFarm', '507f1f77bcf86cd799439011')
-    await admin.fetchCampaigns({ farm: '507f1f77bcf86cd799439011' })
-    await admin.fetchAnimals()
+    console.log('Animaux chargés:', admin.animals)
+  } catch (error) {
+    console.error('Erreur lors du chargement initial:', error)
   }
 })
 </script>
