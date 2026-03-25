@@ -36,15 +36,15 @@
           <input class="form-input" v-model="form.breed" placeholder="Ex: Rhode Island"/>
         </div>
 
-        <!-- Poids et Location -->
+        <!-- Poids et Lot -->
         <div class="grid-2" style="gap:12px">
           <div class="form-group">
             <label class="form-label">Poids (kg)</label>
             <input class="form-input" type="number" step="0.01" v-model="form.weight" placeholder="Ex: 2.5"/>
           </div>
           <div class="form-group">
-            <label class="form-label">Location</label>
-            <input class="form-input" v-model="form.location" placeholder="Ex: Enclos A"/>
+            <label class="form-label">Lot</label>
+            <input class="form-input" v-model="form.location" placeholder="Ex: Lot A"/>
           </div>
         </div>
 

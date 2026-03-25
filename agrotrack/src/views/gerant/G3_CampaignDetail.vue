@@ -268,7 +268,7 @@
             </select>
           </div>
           <div class="form-group">
-            <label>Location</label>
+            <label>Lot</label>
             <input v-model="newAnimal.location" type="text" placeholder="Ex: Lot A">
           </div>
           <div class="form-group">

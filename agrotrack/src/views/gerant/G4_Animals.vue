@@ -79,7 +79,7 @@
             <thead>
               <tr>
                 <th>ID Animal</th>
-                <th>Location</th>
+                <th>Lot</th>
                 <th>Poids</th>
                 <th>Santé</th>
                 <th>Vaccins</th>

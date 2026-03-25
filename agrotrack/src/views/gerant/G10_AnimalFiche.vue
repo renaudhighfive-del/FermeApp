@@ -52,7 +52,7 @@
             <span class="stat-value">{{ animal.weight ? animal.weight.toFixed(2) + ' kg' : '-' }}</span>
           </div>
           <div class="stat">
-            <span class="stat-label">Location</span>
+            <span class="stat-label">Lot</span>
             <span class="stat-value">{{ animal.location || '-' }}</span>
           </div>
           <div class="stat">
