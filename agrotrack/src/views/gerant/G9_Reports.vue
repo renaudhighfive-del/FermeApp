@@ -91,115 +91,124 @@ async function generateReport() {
     const profitLabel = net >= 0 ? 'Bénéfice net' : 'Perte nette'
     const spentPct = c.budget > 0 ? Math.min(100, Math.round(c.spent / c.budget * 100)) : 0
  
-    // Style constants for PDF
-    const sectionTitleStyle = 'font-size: 16px; font-weight: bold; color: #14532d; border-bottom: 2px solid #14532d; padding-bottom: 5px; margin-bottom: 15px; margin-top: 25px;'
-    const tableStyle = 'width: 100%; border-collapse: collapse; margin-bottom: 20px;'
-    const tdLabelStyle = 'padding: 10px; border: 1px solid #e2e8f0; color: #64748b; font-size: 12px; background: #f8fafc;'
-    const tdValueStyle = 'padding: 10px; border: 1px solid #e2e8f0; color: #1a202c; font-size: 12px; font-weight: bold; text-align: right;'
+    // Style constants for PDF - Very explicit inline styles for better rendering
+    const sectionTitleStyle = 'font-size: 16px; font-weight: bold; color: #14532d; border-bottom: 2px solid #14532d; padding-bottom: 5px; margin-bottom: 15px; margin-top: 25px; display: block;'
+    const tableStyle = 'width: 100%; border-collapse: collapse; margin-bottom: 20px; background-color: #ffffff;'
+    const tdLabelStyle = 'padding: 10px; border: 1px solid #e2e8f0; color: #64748b; font-size: 12px; background-color: #f8fafc;'
+    const tdValueStyle = 'padding: 10px; border: 1px solid #e2e8f0; color: #1a202c; font-size: 12px; font-weight: bold; text-align: right; background-color: #ffffff;'
  
     const htmlContent = `
-      <div style="padding: 40px; font-family: Arial, sans-serif; color: #1a202c; background: white; width: 794px;">
-        <!-- Header -->
-        <div style="background: #14532d; color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px;">
-          <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; opacity: 0.8;">AgroTrack - Rapport de Gestion</div>
-          <div style="font-size: 28px; font-weight: bold; margin-bottom: 5px;">Rapport de Campagne</div>
+      <div style="padding: 40px; font-family: Arial, Helvetica, sans-serif; color: #1a202c; background-color: #ffffff; width: 700px; min-height: 1000px; box-sizing: border-box;">
+        <!-- Header with Logo -->
+        <div style="background-color: #14532d; color: #ffffff; padding: 30px; border-radius: 8px; margin-bottom: 30px; display: block; position: relative;">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+            <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="#86efac" stroke-width="2">
+              <path d="M12 2a9 9 0 0 1 9 9c0 4.97-4.03 9-9 9S3 15.97 3 11a9 9 0 0 1 9-9z"/>
+              <path d="M12 6c-2.5 1-4 3.5-4 5.5 0 2.5 1.8 4.5 4 4.5s4-2 4-4.5c0-2-1.5-4.5-4-5.5z"/>
+            </svg>
+            <span style="font-size: 14px; text-transform: uppercase; letter-spacing: 2px; font-weight: bold; color: #86efac;">AgroTrack</span>
+          </div>
+          <div style="font-size: 28px; font-weight: bold; margin-bottom: 5px; color: #ffffff;">Rapport de Campagne</div>
           <div style="font-size: 18px; color: #86efac;">${c.name}</div>
           
-          <table style="width: 100%; margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 15px;">
+          <table style="width: 100%; margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 15px; border-collapse: collapse;">
             <tr>
-              <td style="font-size: 11px; color: rgba(255,255,255,0.8);"><strong>Généré le:</strong> ${today}</td>
-              <td style="font-size: 11px; color: rgba(255,255,255,0.8); text-align: center;"><strong>Statut:</strong> ${c.status}</td>
-              <td style="font-size: 11px; color: rgba(255,255,255,0.8); text-align: right;"><strong>Période:</strong> ${formatDate(c.startDate)} - ${c.endDate ? formatDate(c.endDate) : 'En cours'}</td>
+              <td style="font-size: 11px; color: #ffffff; background-color: transparent; border: none; padding: 5px;"><strong>Généré le:</strong> ${today}</td>
+              <td style="font-size: 11px; color: #ffffff; text-align: center; background-color: transparent; border: none; padding: 5px;"><strong>Statut:</strong> ${c.status}</td>
+              <td style="font-size: 11px; color: #ffffff; text-align: right; background-color: transparent; border: none; padding: 5px;"><strong>Période:</strong> ${formatDate(c.startDate)} - ${c.endDate ? formatDate(c.endDate) : 'En cours'}</td>
             </tr>
           </table>
         </div>
 
-        <!-- Section: Performances -->
-        ${sections.value.animals ? `
-          <div style="${sectionTitleStyle}">📈 Performances de l'Élevage</div>
-          <table style="${tableStyle}">
-            <tr>
-              <td style="${tdLabelStyle}">Effectif initial</td>
-              <td style="${tdValueStyle}">${c.initialAnimalCount} têtes</td>
-              <td style="${tdLabelStyle}">Effectif actuel</td>
-              <td style="${tdValueStyle}">${c.currentAnimalCount} têtes</td>
-            </tr>
-            <tr>
-              <td style="${tdLabelStyle}">Taux de survie</td>
-              <td style="${tdValueStyle}">${survivalRate.value}%</td>
-              <td style="${tdLabelStyle}">Taux de mortalité</td>
-              <td style="${tdValueStyle}">${c.mortality}%</td>
-            </tr>
-          </table>
-        ` : ''}
+        <!-- Sections wrapper -->
+        <div style="display: block; width: 100%;">
+          <!-- Section: Performances -->
+          ${sections.value.animals ? `
+            <div style="${sectionTitleStyle}">📈 Performances de l'Élevage</div>
+            <table style="${tableStyle}">
+              <tr>
+                <td style="${tdLabelStyle}">Effectif initial</td>
+                <td style="${tdValueStyle}">${c.initialAnimalCount} têtes</td>
+                <td style="${tdLabelStyle}">Effectif actuel</td>
+                <td style="${tdValueStyle}">${c.currentAnimalCount} têtes</td>
+              </tr>
+              <tr>
+                <td style="${tdLabelStyle}">Taux de survie</td>
+                <td style="${tdValueStyle}">${survivalRate.value}%</td>
+                <td style="${tdLabelStyle}">Taux de mortalité</td>
+                <td style="${tdValueStyle}">${c.mortality}%</td>
+              </tr>
+            </table>
+          ` : ''}
 
-        <!-- Section: Finance -->
-        ${sections.value.finance ? `
-          <div style="${sectionTitleStyle}">💰 Bilan Financier</div>
-          <table style="${tableStyle}">
-            <tr>
-              <td style="${tdLabelStyle}">Budget total alloué</td>
-              <td style="${tdValueStyle}">${formatCurrency(c.budget)}</td>
-            </tr>
-            <tr>
-              <td style="${tdLabelStyle}">Total des dépenses</td>
-              <td style="${tdValueStyle}; color: #dc2626;">- ${formatCurrency(c.spent)}</td>
-            </tr>
-            <tr>
-              <td style="${tdLabelStyle}">Total des revenus</td>
-              <td style="${tdValueStyle}; color: #16a34a;">+ ${formatCurrency(c.actualRevenue)}</td>
-            </tr>
-            <tr style="background: ${net >= 0 ? '#f0fdf4' : '#fef2f2'};">
-              <td style="padding: 15px; border: 2px solid ${netColor}; font-weight: bold; font-size: 14px;">${profitLabel}</td>
-              <td style="padding: 15px; border: 2px solid ${netColor}; font-weight: bold; font-size: 16px; text-align: right; color: ${netColor};">
-                ${formatCurrency(net)}
-              </td>
-            </tr>
-          </table>
-          <div style="margin-top: 10px;">
-            <div style="font-size: 11px; color: #64748b; margin-bottom: 5px;">Utilisation du budget (${spentPct}%)</div>
-            <div style="width: 100%; height: 12px; background: #e2e8f0; border-radius: 6px; overflow: hidden;">
-              <div style="width: ${spentPct}%; height: 100%; background: #dc2626;"></div>
+          <!-- Section: Finance -->
+          ${sections.value.finance ? `
+            <div style="${sectionTitleStyle}">💰 Bilan Financier</div>
+            <table style="${tableStyle}">
+              <tr>
+                <td style="${tdLabelStyle}">Budget total alloué</td>
+                <td style="${tdValueStyle}">${formatCurrency(c.budget)}</td>
+              </tr>
+              <tr>
+                <td style="${tdLabelStyle}">Total des dépenses</td>
+                <td style="${tdValueStyle}; color: #dc2626;">- ${formatCurrency(c.spent)}</td>
+              </tr>
+              <tr>
+                <td style="${tdLabelStyle}">Total des revenus</td>
+                <td style="${tdValueStyle}; color: #16a34a;">+ ${formatCurrency(c.actualRevenue)}</td>
+              </tr>
+              <tr style="background-color: ${net >= 0 ? '#f0fdf4' : '#fef2f2'};">
+                <td style="padding: 15px; border: 2px solid ${netColor}; font-weight: bold; font-size: 14px;">${profitLabel}</td>
+                <td style="padding: 15px; border: 2px solid ${netColor}; font-weight: bold; font-size: 16px; text-align: right; color: ${netColor};">
+                  ${formatCurrency(net)}
+                </td>
+              </tr>
+            </table>
+            <div style="margin-top: 10px; background-color: #f8fafc; padding: 15px; border-radius: 8px; display: block; border: 1px solid #e2e8f0;">
+              <div style="font-size: 11px; color: #64748b; margin-bottom: 8px;">Utilisation du budget (${spentPct}%)</div>
+              <div style="width: 100%; height: 12px; background-color: #e2e8f0; border-radius: 6px; overflow: hidden;">
+                <div style="width: ${spentPct}%; height: 100%; background-color: #dc2626;"></div>
+              </div>
             </div>
-          </div>
-        ` : ''}
+          ` : ''}
 
-        <!-- Section: Santé -->
-        ${sections.value.health ? `
-          <div style="${sectionTitleStyle}">🩺 État Sanitaire</div>
-          <table style="${tableStyle}">
-            <tr>
-              <td style="${tdLabelStyle}">Animaux en bonne santé</td>
-              <td style="${tdValueStyle}; color: #16a34a;">${c.currentAnimalCount - c.deaths} (${healthyPercent.value}%)</td>
-            </tr>
-            <tr>
-              <td style="${tdLabelStyle}">Pertes (Mortalité)</td>
-              <td style="${tdValueStyle}; color: #dc2626;">${c.deaths} têtes</td>
-            </tr>
-          </table>
-        ` : ''}
+          <!-- Section: Santé -->
+          ${sections.value.health ? `
+            <div style="${sectionTitleStyle}">🩺 État Sanitaire</div>
+            <table style="${tableStyle}">
+              <tr>
+                <td style="${tdLabelStyle}">Animaux en bonne santé</td>
+                <td style="${tdValueStyle}; color: #16a34a;">${c.currentAnimalCount - c.deaths} (${healthyPercent.value}%)</td>
+              </tr>
+              <tr>
+                <td style="${tdLabelStyle}">Pertes (Mortalité)</td>
+                <td style="${tdValueStyle}; color: #dc2626;">${c.deaths} têtes</td>
+              </tr>
+            </table>
+          ` : ''}
 
-        <!-- Section: Alimentation -->
-        ${sections.value.feed ? `
-          <div style="${sectionTitleStyle}">🌾 Alimentation & Conversion</div>
-          <table style="${tableStyle}">
-            <tr>
-              <td style="${tdLabelStyle}">Quantité totale consommée</td>
-              <td style="${tdValueStyle}">${c.feedConsumed || 0} kg</td>
-            </tr>
-            <tr>
-              <td style="${tdLabelStyle}">Coût total de l'aliment</td>
-              <td style="${tdValueStyle}">${formatCurrency(c.feedCost || 0)}</td>
-            </tr>
-            <tr>
-              <td style="${tdLabelStyle}">Indice de Conversion (FCR)</td>
-              <td style="${tdValueStyle}">${c.fcr || 'N/A'}</td>
-            </tr>
-          </table>
-        ` : ''}
+          <!-- Section: Alimentation -->
+          ${sections.value.feed ? `
+            <div style="${sectionTitleStyle}">🌾 Alimentation & Conversion</div>
+            <table style="${tableStyle}">
+              <tr>
+                <td style="${tdLabelStyle}">Quantité totale consommée</td>
+                <td style="${tdValueStyle}">${c.feedConsumed || 0} kg</td>
+              </tr>
+              <tr>
+                <td style="${tdLabelStyle}">Coût total de l'aliment</td>
+                <td style="${tdValueStyle}">${formatCurrency(c.feedCost || 0)}</td>
+              </tr>
+              <tr>
+                <td style="${tdLabelStyle}">Indice de Conversion (FCR)</td>
+                <td style="${tdValueStyle}">${c.fcr || 'N/A'}</td>
+              </tr>
+            </table>
+          ` : ''}
+        </div>
 
         <!-- Footer -->
-        <div style="margin-top: 50px; border-top: 1px solid #e2e8f0; padding-top: 20px; text-align: center; color: #94a3b8; font-size: 10px;">
+        <div style="margin-top: 50px; border-top: 1px solid #e2e8f0; padding-top: 20px; text-align: center; color: #94a3b8; font-size: 10px; display: block;">
           Document généré automatiquement par AgroTrack - Logiciel de gestion agricole.<br>
           © 2026 AgroTrack - Tous droits réservés.
         </div>
@@ -208,31 +217,22 @@ async function generateReport() {
 
     const filename = `rapport-${c.name.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.pdf`
     
-    // Create a hidden container for the PDF content
-    const container = document.createElement('div')
-    container.style.position = 'fixed'
-    container.style.left = '-9999px'
-    container.style.top = '0'
-    container.innerHTML = htmlContent
-    document.body.appendChild(container)
-
+    // Config for direct string rendering
     const opt = {
-      margin: 10,
+      margin: [10, 10, 10, 10], // Explicit margins in mm
       filename: filename,
-      image: { type: 'jpeg', quality: 0.98 },
+      image: { type: 'jpeg', quality: 1.0 }, // Max quality
       html2canvas: { 
         scale: 2, 
         useCORS: true, 
-        logging: false,
-        letterRendering: true,
-        scrollY: 0
+        logging: true, // Let's keep logging to see what happens
+        backgroundColor: '#ffffff' // Ensure white background
       },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     }
 
-    await html2pdf().from(container).set(opt).save()
-    document.body.removeChild(container)
+    // Direct generation from string
+    await html2pdf().from(htmlContent).set(opt).save()
  
   } catch (error) {
     console.error('Erreur génération PDF:', error)

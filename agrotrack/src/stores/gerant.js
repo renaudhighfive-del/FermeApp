@@ -18,6 +18,7 @@ export const useGerantStore = defineStore("gerant", () => {
   const activeCampaigns = computed(() =>
     campaigns.value.filter((c) => c.status === "En cours")
   );
+  const lowStockAlerts = ref(0);
 
   const completedCampaigns = computed(() =>
     campaigns.value.filter((c) => c.status === "Terminée")
@@ -49,11 +50,33 @@ export const useGerantStore = defineStore("gerant", () => {
         const isOwner = ownerId === userIdStr;
         return isManager || isOwner;
       });
+
+      // Après avoir chargé les fermes, on peut vérifier les stocks
+      if (farms.value.length > 0) {
+        await checkStockAlerts();
+      }
     } catch (err) {
       error.value = "Erreur lors du chargement des fermes";
       console.error(err);
     } finally {
       loading.value = false;
+    }
+  }
+
+  async function checkStockAlerts() {
+    try {
+      const { productService } = await import("@/services/api");
+      let totalAlerts = 0;
+      for (const farm of farms.value) {
+        const farmId = farm._id || farm.id;
+        const res = await productService.getAll({ farm: farmId, category: "Aliment" });
+        const products = res.data.products || res.data || [];
+        const lowStock = products.filter((p) => p.quantity <= (p.reorderLevel || 0));
+        totalAlerts += lowStock.length;
+      }
+      lowStockAlerts.value = totalAlerts;
+    } catch (err) {
+      console.error("Erreur checkStockAlerts:", err);
     }
   }
 
@@ -184,14 +207,16 @@ export const useGerantStore = defineStore("gerant", () => {
   return {
     farms,
     campaigns,
+    agents,
     loading,
     error,
     activeCampaigns,
-    agents,
     completedCampaigns,
     preparationCampaigns,
+    lowStockAlerts,
     fetchGerantFarms,
     fetchGerantCampaigns,
+    checkStockAlerts,
     fetchAgents,
     createCampaign,
     updateCampaign,

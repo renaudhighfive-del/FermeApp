@@ -92,8 +92,8 @@ const currentDate = computed(() => {
   <div class="banner">
     <svg width="28" height="28" fill="none" stroke="#F2B705" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
     <div class="banner-content">
-      <h3>Bonjour {{ currentUserName }} — {{ tasksCount }} tâches à effectuer aujourd'hui</h3>
-      <p>{{ currentDate }} · <span v-if="activeCampaign">{{ activeCampaign.name }} en cours</span><span v-else>Aucune campagne en cours</span></p>
+      <h3>Bonjour {{ currentUserName }} — Bienvenue sur votre espace de gestion</h3>
+      <p>{{ currentDate }} · <span v-if="gerantStore.activeCampaigns.length > 0">{{ gerantStore.activeCampaigns.length }} campagne(s) en cours de suivi</span><span v-else>Aucune campagne active</span></p>
     </div>
   </div>
 
@@ -150,43 +150,68 @@ const currentDate = computed(() => {
   </div>
 
   <!-- Main Grid -->
-  <div class="flex flex-col gap-20 mb-gap" v-if="gerantStore.activeCampaigns.length > 0">
+  <div class="flex flex-col gap-20 mb-gap">
     <!-- Active Campaigns Grid -->
-    <div class="grid-2">
-      <div class="card" v-for="campaign in gerantStore.activeCampaigns" :key="campaign._id || campaign.id">
-        <div class="card-header">
-          <div class="card-title" style="margin-bottom:0">{{ campaign.name }} <span class="badge badge-encours">{{ campaign.status }}</span></div>
-          <RouterLink :to="`/gerant/campaigns/${campaign._id || campaign.id}`" class="btn btn-outline btn-sm">Voir détail</RouterLink>
-        </div>
-        <div class="progress-wrap mb-12">
-          <div class="progress-header">
-            <span>Animaux vivants</span>
-            <span class="fw-600">{{ campaign.currentAnimalCount }}/{{ campaign.initialAnimalCount }} ({{ getAnimalPercentage(campaign) }}%)</span>
+    <div v-if="gerantStore.activeCampaigns.length > 0">
+      <div class="card-title">Campagnes en cours</div>
+      <div class="grid-2">
+        <div class="card" v-for="campaign in gerantStore.activeCampaigns" :key="campaign._id || campaign.id">
+          <div class="card-header">
+            <div class="card-title" style="margin-bottom:0">{{ campaign.name }} <span class="badge badge-encours">{{ campaign.status }}</span></div>
+            <RouterLink :to="`/gerant/campaigns/${campaign._id || campaign.id}`" class="btn btn-outline btn-sm">Voir détail</RouterLink>
           </div>
-          <div class="progress-track">
-            <div class="progress-fill fill-green" :style="{width: getAnimalPercentage(campaign) + '%'}"></div>
+          <div class="progress-wrap mb-12">
+            <div class="progress-header">
+              <span>Animaux vivants</span>
+              <span class="fw-600">{{ campaign.currentAnimalCount }}/{{ campaign.initialAnimalCount }} ({{ getAnimalPercentage(campaign) }}%)</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill fill-green" :style="{width: getAnimalPercentage(campaign) + '%'}"></div>
+            </div>
           </div>
-        </div>
-        <div class="progress-wrap">
-          <div class="progress-header">
-            <span>Budget consommé</span>
-            <span class="fw-600">{{ formatCurrency(campaign.spent) }}/{{ formatCurrency(campaign.budget) }} ({{ getBudgetPercentage(campaign) }}%)</span>
+          <div class="progress-wrap">
+            <div class="progress-header">
+              <span>Budget consommé</span>
+              <span class="fw-600">{{ formatCurrency(campaign.spent) }}/{{ formatCurrency(campaign.budget) }} ({{ getBudgetPercentage(campaign) }}%)</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill fill-yellow" :style="{width: getBudgetPercentage(campaign) + '%'}"></div>
+            </div>
           </div>
-          <div class="progress-track">
-            <div class="progress-fill fill-yellow" :style="{width: getBudgetPercentage(campaign) + '%'}"></div>
+          <div class="flex gap-20 mt-auto" style="margin-top:14px;font-size:12px;color:var(--soft)">
+            <span class="flex items-center gap-8">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Démarré le {{ formatDate(campaign.startDate) }}
+            </span>
+            <span class="flex items-center gap-8">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Durée: {{ getDaysRemaining(campaign.startDate) }} j
+            </span>
           </div>
-        </div>
-        <div class="flex gap-20 mt-auto" style="margin-top:14px;font-size:12px;color:var(--soft)">
-          <span class="flex items-center gap-8">
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            Démarré le {{ formatDate(campaign.startDate) }}
-          </span>
-          <span class="flex items-center gap-8">
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            Durée: {{ getDaysRemaining(campaign.startDate) }} j
-          </span>
         </div>
       </div>
+    </div>
+
+    <!-- Preparation Campaigns Grid -->
+    <div v-if="gerantStore.preparationCampaigns.length > 0">
+      <div class="card-title">Campagnes en préparation</div>
+      <div class="grid-2">
+        <div class="card" v-for="campaign in gerantStore.preparationCampaigns" :key="campaign._id || campaign.id">
+          <div class="card-header">
+            <div class="card-title" style="margin-bottom:0">{{ campaign.name }} <span class="badge badge-prep">{{ campaign.status }}</span></div>
+            <RouterLink :to="`/gerant/campaigns/${campaign._id || campaign.id}`" class="btn btn-outline btn-sm">Voir détail</RouterLink>
+          </div>
+          <div class="flex flex-col gap-12 mt-12" style="font-size:13px;color:var(--soft)">
+            <p><strong>Objectif:</strong> {{ campaign.initialAnimalCount }} têtes ({{ campaign.animalType }})</p>
+            <p><strong>Budget prévu:</strong> {{ formatCurrency(campaign.budget) }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="gerantStore.activeCampaigns.length === 0 && gerantStore.preparationCampaigns.length === 0" class="card" style="text-align: center; padding: 40px;">
+      <p class="text-soft" style="font-size: 16px; margin-bottom: 20px;">Aucune campagne active ou en préparation pour le moment</p>
+      <RouterLink to="/gerant/campaigns" class="btn btn-primary">Voir mes campagnes</RouterLink>
     </div>
 
     <div class="grid-2-1">
@@ -232,10 +257,10 @@ const currentDate = computed(() => {
   </div>
 
   <!-- No Campaign Message -->
-  <div v-else class="card" style="text-align: center; padding: 40px;">
+  <!-- <div v-else class="card" style="text-align: center; padding: 40px;">
     <p class="text-soft" style="font-size: 16px; margin-bottom: 20px;">Aucune campagne active pour le moment</p>
     <RouterLink to="/gerant/campaigns" class="btn btn-primary">Voir mes campagnes</RouterLink>
-  </div>
+  </div> -->
 </div>
 </template>
 

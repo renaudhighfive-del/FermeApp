@@ -22,7 +22,7 @@
       <SidebarItem icon="flag"    label="Campagnes"       to="/gerant/campaigns" @click="ui.closeSidebar"/>
       <SidebarItem icon="animal"  label="Animaux"         to="/gerant/animals" @click="ui.closeSidebar"/>
       <SidebarItem icon="health"  label="Santé"           to="/gerant/health" @click="ui.closeSidebar"/>
-      <SidebarItem icon="food"    label="Alimentation"    to="/gerant/food" @click="ui.closeSidebar"/>
+      <SidebarItem icon="food"    label="Alimentation"    to="/gerant/food" @click="ui.closeSidebar" :badge="gerantStore.lowStockAlerts > 0"/>
       <SidebarItem icon="chart"   label="Finance"         to="/gerant/finance" @click="ui.closeSidebar"/>
       <SidebarItem icon="sales"   label="Ventes"          to="/gerant/sales" @click="ui.closeSidebar"/>
       <SidebarItem icon="box"     label="Stock"           to="/gerant/stock" @click="ui.closeSidebar"/>
@@ -52,10 +52,12 @@
 import { computed }     from 'vue'
 import { useAuthStore } from '@/stores/auth.js'
 import { useUiStore }   from '@/stores/ui.js'
+import { useGerantStore } from '@/stores/gerant.js'
 import SidebarItem      from './SidebarItem.vue'
 
 const auth = useAuthStore()
 const ui   = useUiStore()
+const gerantStore = useGerantStore()
 
 const initials = computed(() => {
   const n = auth.user?.name || 'G'

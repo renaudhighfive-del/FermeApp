@@ -5,16 +5,26 @@
       :class="{ 'active': isActive }" 
       @click="navigate"
     >
-      <div class="w-5 h-5 flex items-center justify-center flex-shrink-0">
+      <div class="w-5 h-5 flex items-center justify-center flex-shrink-0 relative">
         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" v-html="icons[icon] || icons['grid']"></svg>
+        <div v-if="badge" class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-danger rounded-full border-2 border-[var(--sidebar)]"></div>
       </div>
       <span class="truncate">{{ label }}</span>
+      <span v-if="badgeCount" class="ml-auto bg-danger text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+        {{ badgeCount }}
+      </span>
     </div>
   </RouterLink>
 </template>
 
 <script setup>
-defineProps({ icon: String, label: String, to: String })
+defineProps({ 
+  icon: String, 
+  label: String, 
+  to: String,
+  badge: Boolean,
+  badgeCount: [Number, String]
+})
 
 const icons = {
   dashboard: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',

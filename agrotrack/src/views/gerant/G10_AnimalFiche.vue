@@ -1,3 +1,133 @@
+<script setup>
+import { ref, onMounted, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { animalService, campaignService, eventService } from '@/services/api'
+import { formatCurrency, formatDate, getHealthClass, getEventBadgeClass } from '@/utils/formatters'
+import QRCode from 'qrcode'
+import ModalEditAnimal from '@/components/common/ModalEditAnimal.vue'
+
+const router = useRouter()
+const route = useRoute()
+
+const animal = ref(null)
+const campaign = ref(null)
+const events = ref([])
+const loading = ref(false)
+const error = ref(null)
+const activeTab = ref('general')
+const showQRModal = ref(false)
+const showEditModal = ref(false)
+const qrCodeDataURL = ref('')
+
+onMounted(async () => {
+  await loadAnimalData()
+})
+
+async function loadAnimalData() {
+  loading.value = true
+  error.value = null
+
+  try {
+    const animalId = route.params.id
+    const response = await animalService.getById(animalId)
+    animal.value = response.data
+
+    // Charger la campagne associée si nécessaire
+    if (animal.value.campaign) {
+      const campaignId = typeof animal.value.campaign === 'object' ? animal.value.campaign._id : animal.value.campaign;
+      const campRes = await campaignService.getById(campaignId);
+      campaign.value = campRes.data;
+    }
+
+    // Charger l'historique des événements
+    const eventsRes = await eventService.getAll({ animal: animalId, limit: 100 });
+    events.value = eventsRes.data.events || [];
+
+    // Générer le QR code immédiatement
+    if (animal.value) {
+      qrCodeDataURL.value = await generateQRCode(animal.value.idNumber || animal.value._id)
+    }
+  } catch (err) {
+    error.value = 'Erreur lors du chargement de l\'animal'
+    console.error(err)
+  } finally {
+    loading.value = false
+  }
+}
+
+
+
+async function showQRCode() {
+  showQRModal.value = true
+  // Le QR code est déjà généré au chargement
+}
+
+async function generateQRCode(text) {
+  try {
+    return await QRCode.toDataURL(text, {
+      width: 250,
+      margin: 2,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      }
+    })
+  } catch (err) {
+    console.error('Erreur lors de la génération du QR code:', err)
+    return ''
+  }
+}
+
+function downloadQR() {
+  const qrImg = document.querySelector('.qr-code-image')
+  if (qrImg && qrImg.src) {
+    const link = document.createElement('a')
+    link.href = qrImg.src
+    link.download = `QR_${animal.value.idNumber || animal.value._id}.png`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+}
+
+function printQR() {
+  const printWindow = window.open('', '_blank')
+  const qrImg = document.querySelector('.qr-code-image')
+  if (qrImg && qrImg.src) {
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>QR Code - ${animal.value.idNumber}</title>
+          <style>
+            body { text-align: center; font-family: Arial, sans-serif; margin: 20px; }
+            img { max-width: 300px; margin: 20px 0; }
+            .info { margin-top: 20px; font-size: 14px; color: #666; }
+          </style>
+        </head>
+        <body>
+          <h2>QR Code Animal</h2>
+          <img src="${qrImg.src}" alt="QR Code" />
+          <div class="info">
+            <p><strong>ID Animal:</strong> ${animal.value.idNumber}</p>
+            <p><strong>Type:</strong> ${animal.value.type || 'N/A'}</p>
+            <p><strong>Race:</strong> ${animal.value.breed || 'N/A'}</p>
+          </div>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
+    printWindow.print()
+  }
+}
+
+function editAnimal() {
+  showEditModal.value = true
+}
+
+async function handleAnimalUpdated() {
+  await loadAnimalData()
+}
+</script>
 <template>
 <div class="page">
   <div class="page-header">
@@ -34,10 +164,8 @@
     <!-- En-tête avec infos principales -->
     <div class="fiche-header">
       <div class="animal-avatar">
-        <svg width="60" height="60" fill="none" stroke="var(--primary)" stroke-width="1.5" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M12 6v6l4 2"/>
-        </svg>
+        <img v-if="qrCodeDataURL" :src="qrCodeDataURL" alt="QR Code" style="width: 100%; height: 100%; object-fit: contain; padding: 5px;">
+        <div v-else class="spinner-sm"></div>
       </div>
       <div class="animal-info">
         <h2>{{ animal.idNumber }}</h2>
@@ -104,7 +232,7 @@
             </div>
             <div class="info-item">
               <label>Date de naissance</label>
-              <span>{{ animal.birthDate ? formatDate(animal.birthDate) : '-' }}</span>
+              <span>{{ animal.dateOfBirth ? formatDate(animal.dateOfBirth) : '-' }}</span>
             </div>
             <div class="info-item">
               <label>Campagne</label>
@@ -192,147 +320,39 @@
         <button class="modal-close" @click="showQRModal = false">×</button>
       </div>
       <div class="modal-body text-center">
-        <img class="qr-code-image" :src="qrCodeDataURL" alt="QR Code" style="max-width: 200px; border: 1px solid #ddd; padding: 10px; background: white;">
-        <p class="text-soft mt-16">Scannez ce QR code pour accéder à la fiche de l'animal</p>
-        <div class="flex gap-12 justify-center mt-16">
-          <button class="btn btn-outline" @click="downloadQR">Télécharger</button>
-          <button class="btn btn-primary" @click="printQR">Imprimer</button>
+        <div style="background: white; padding: 20px; display: inline-block; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px;">
+          <img class="qr-code-image" :src="qrCodeDataURL" alt="QR Code" style="max-width: 200px; display: block;">
+        </div>
+        <p class="text-soft mt-16">Scannez ce QR code standard pour accéder à la fiche de l'animal</p>
+        <div class="flex gap-12 justify-center mt-24">
+          <button class="btn btn-outline" @click="downloadQR">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Télécharger
+          </button>
+          <button class="btn btn-primary" @click="printQR">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
+            </svg>
+            Imprimer
+          </button>
         </div>
       </div>
     </div>
   </div>
+
+  <ModalEditAnimal 
+    v-if="showEditModal"
+    :open="showEditModal"
+    :animal="animal"
+    @close="showEditModal = false"
+    @updated="handleAnimalUpdated"
+  />
 </div>
 </template>
 
-<script setup>
-import { ref, onMounted, computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { animalService, campaignService, eventService } from '@/services/api'
-import { formatCurrency, formatDate, getHealthClass, getEventBadgeClass } from '@/utils/formatters'
-import QRCode from 'qrcode'
 
-const router = useRouter()
-const route = useRoute()
-
-const animal = ref(null)
-const campaign = ref(null)
-const events = ref([])
-const loading = ref(false)
-const error = ref(null)
-const activeTab = ref('general')
-const showQRModal = ref(false)
-const qrCodeDataURL = ref('')
-
-onMounted(async () => {
-  await loadAnimalData()
-})
-
-async function loadAnimalData() {
-  loading.value = true
-  error.value = null
-
-  try {
-    const animalId = route.params.id
-    const response = await animalService.getById(animalId)
-    animal.value = response.data
-
-    // Charger la campagne associée si nécessaire
-    if (animal.value.campaign) {
-      const campaignId = typeof animal.value.campaign === 'object' ? animal.value.campaign._id : animal.value.campaign;
-      const campRes = await campaignService.getById(campaignId);
-      campaign.value = campRes.data;
-    }
-
-    // Charger l'historique des événements
-    const eventsRes = await eventService.getAll({ animal: animalId, limit: 100 });
-    events.value = eventsRes.data.events || [];
-  } catch (err) {
-    error.value = 'Erreur lors du chargement de l\'animal'
-    console.error(err)
-  } finally {
-    loading.value = false
-  }
-}
-
-
-
-async function showQRCode() {
-  showQRModal.value = true
-  // Générer le QR code quand la modal s'ouvre
-  if (animal.value) {
-    qrCodeDataURL.value = await generateQRCode(animal.value.idNumber || animal.value._id)
-  }
-}
-
-async function generateQRCode(text) {
-  try {
-    const qrDataURL = await QRCode.toDataURL(text, {
-      width: 200,
-      margin: 2,
-      color: {
-        dark: '#000000',
-        light: '#FFFFFF'
-      }
-    })
-    // Mettre à jour l'image dans la modal
-    const qrImg = document.querySelector('.qr-code-image')
-    if (qrImg) {
-      qrImg.src = qrDataURL
-    }
-    return qrDataURL
-  } catch (err) {
-    console.error('Erreur lors de la génération du QR code:', err)
-    return ''
-  }
-}
-
-function downloadQR() {
-  const qrImg = document.querySelector('.qr-code-image')
-  if (qrImg && qrImg.src) {
-    const link = document.createElement('a')
-    link.href = qrImg.src
-    link.download = `QR_${animal.value.idNumber || animal.value._id}.png`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
-}
-
-function printQR() {
-  const printWindow = window.open('', '_blank')
-  const qrImg = document.querySelector('.qr-code-image')
-  if (qrImg && qrImg.src) {
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>QR Code - ${animal.value.idNumber}</title>
-          <style>
-            body { text-align: center; font-family: Arial, sans-serif; margin: 20px; }
-            img { max-width: 300px; margin: 20px 0; }
-            .info { margin-top: 20px; font-size: 14px; color: #666; }
-          </style>
-        </head>
-        <body>
-          <h2>QR Code Animal</h2>
-          <img src="${qrImg.src}" alt="QR Code" />
-          <div class="info">
-            <p><strong>ID Animal:</strong> ${animal.value.idNumber}</p>
-            <p><strong>Type:</strong> ${animal.value.type || 'N/A'}</p>
-            <p><strong>Race:</strong> ${animal.value.breed || 'N/A'}</p>
-          </div>
-        </body>
-      </html>
-    `)
-    printWindow.document.close()
-    printWindow.print()
-  }
-}
-
-function editAnimal() {
-  // TODO: Implémenter l'édition d'animal
-  alert('Fonction d\'édition à implémenter')
-}
-</script>
 
 <style scoped>
 .animal-fiche {
@@ -353,14 +373,16 @@ function editAnimal() {
 
 .animal-avatar {
   flex-shrink: 0;
-  width: 80px;
-  height: 80px;
-  background: var(--bg);
-  border-radius: 50%;
+  width: 100px;
+  height: 100px;
+  background: white;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid var(--primary);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
 
 .animal-info h2 {
@@ -491,5 +513,28 @@ function editAnimal() {
 .back-btn:hover {
   background: var(--bg);
   color: var(--text);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--bg);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+.spinner-sm {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--bg);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useGerantStore } from '@/stores/gerant'
 import { eventService, campaignService, animalService } from '@/services/api'
@@ -7,6 +7,7 @@ import { formatCurrency, formatDate, getAnimalPercentage, getBudgetPercentage, g
 import ModalAddAnimal from '@/components/common/ModalAddAnimal.vue'
 import ModalHealthEvent from '@/components/common/ModalHealthEvent.vue'
 import ModalEditCampaign from '@/components/common/ModalEditCampaign.vue'
+import QRCode from 'qrcode'
 
 const router = useRouter()
 const route = useRoute()
@@ -24,6 +25,7 @@ const showHealthModal = ref(false)
 const showEditModal = ref(false)
 const selectedAnimal = ref(null)
 const showQRModal = ref(false)
+const qrCodeDataURL = ref('')
 
 onMounted(async () => {
   await loadCampaignData()
@@ -69,9 +71,34 @@ const filteredAnimals = computed(() => {
   )
 })
 
-function showQRCode(animal) {
+async function showQRCode(animal) {
   selectedAnimal.value = animal
   showQRModal.value = true
+  if (animal) {
+    try {
+      qrCodeDataURL.value = await QRCode.toDataURL(animal.idNumber || animal._id, {
+        width: 250,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      })
+    } catch (err) {
+      console.error('Erreur QR Code:', err)
+    }
+  }
+}
+
+function downloadQR() {
+  if (qrCodeDataURL.value) {
+    const link = document.createElement('a')
+    link.href = qrCodeDataURL.value
+    link.download = `QR_${selectedAnimal.value.idNumber || selectedAnimal.value._id}.png`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
 }
 
 function viewAnimalFiche(animal) {
@@ -528,14 +555,23 @@ Généré le: ${reportData.date}
   <div v-if="showQRModal" class="modal-overlay" @click="showQRModal = false">
     <div class="modal" @click.stop>
       <div class="modal-header">
-        <h3>QR Code - {{ selectedAnimal?.idNumber }}</h3>
+        <h3 class="modal-title">QR Code - {{ selectedAnimal?.idNumber }}</h3>
         <button class="modal-close" @click="showQRModal = false">×</button>
       </div>
       <div class="modal-body text-center">
-        <img :src="generateQRCode(selectedAnimal?.idNumber || selectedAnimal?._id)" alt="QR Code"
-          style="max-width: 200px;">
-        <p class="text-soft mt-16">Scannez ce QR code pour accéder à la fiche de l'animal</p>
-        <button class="btn btn-primary mt-16" @click="viewAnimalFiche(selectedAnimal)">Voir la fiche complète</button>
+        <div style="background: white; padding: 15px; display: inline-block; border-radius: 8px; border: 1px solid var(--border);">
+          <img :src="qrCodeDataURL" alt="QR Code" style="max-width: 200px; display: block;">
+        </div>
+        <p class="text-soft mt-16">Scannez ce QR code standard pour accéder à la fiche de l'animal</p>
+        <div class="flex gap-12 justify-center mt-16">
+          <button class="btn btn-outline btn-sm" @click="downloadQR">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Télécharger
+          </button>
+          <button class="btn btn-primary btn-sm" @click="viewAnimalFiche(selectedAnimal)">Voir la fiche</button>
+        </div>
       </div>
     </div>
   </div>

@@ -13,8 +13,8 @@
             {{ c.name }}
           </option>
         </select>
-        <button class="btn btn-outline btn-sm">+ Commander</button>
-        <button class="btn btn-primary btn-sm">+ Distribution</button>
+        <button class="btn btn-outline btn-sm" @click="showOrderModal = true">+ Commander</button>
+        <button class="btn btn-primary btn-sm" @click="showDistributionModal = true">+ Distribution</button>
       </div>
     </div>
   </div>
@@ -32,15 +32,27 @@
     <div class="kpi-grid mb-gap">
       <div class="kpi-card"><div class="kpi-label">Consommation aliments</div><div class="kpi-value" style="color:var(--warn)">{{ campaign.feedConsumed }} kg</div><div class="kpi-sub warn">FCR: {{ campaign.fcr }}</div></div>
       <div class="kpi-card"><div class="kpi-label">Coût alimentation</div><div class="kpi-value">{{ formatCurrency(campaign.feedCost) }}</div></div>
-      <div class="kpi-card"><div class="kpi-label">Consommation/jour</div><div class="kpi-value">{{ (campaign.feedConsumed / getDaysRemaining(campaign.startDate) || 0).toFixed(1) }} kg</div></div>
+      <div class="kpi-card"><div class="kpi-label">Consommation/jour</div><div class="kpi-value">{{ (campaign.feedConsumed / Math.max(1, getDaysRemaining(campaign.startDate)) || 0).toFixed(1) }} kg</div></div>
       <div class="kpi-card"><div class="kpi-label">Budget stock</div><div class="kpi-value">{{ formatCurrency(campaign.feedCost) }}</div></div>
     </div>
 
-    <div class="alert-card alert-warning mb-gap">
-      <svg width="18" height="18" fill="none" stroke="#E07B39" stroke-width="1.5" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:2px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+    <!-- Alertes de stock -->
+    <div v-if="lowStockItems.length > 0" class="mb-gap">
+      <div v-for="item in lowStockItems" :key="item._id" class="alert-card alert-danger mb-12">
+        <svg width="18" height="18" fill="none" stroke="#D62828" stroke-width="1.5" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div class="alert-content">
+          <div class="alert-title">Stock critique: {{ item.name }}</div>
+          <div class="alert-desc">Il ne reste que {{ item.quantity }} kg en stock (Seuil: {{ item.reorderLevel }} kg).</div>
+        </div>
+        <button class="btn btn-outline btn-sm" @click="showOrderModal = true">Commander</button>
+      </div>
+    </div>
+
+    <div v-else class="alert-card alert-success mb-gap">
+      <svg width="18" height="18" fill="none" stroke="#2D6A4F" stroke-width="1.5" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:2px"><polyline points="20 6 9 17 4 12"/></svg>
       <div class="alert-content">
-        <div class="alert-title">Informations sur l'alimentation</div>
-        <div class="alert-desc">Suivi de la consommation et du coût des aliments pour cette campagne</div>
+        <div class="alert-title">Stocks optimaux</div>
+        <div class="alert-desc">Tous les niveaux d'aliments sont au-dessus des seuils d'alerte.</div>
       </div>
     </div>
 
@@ -54,18 +66,41 @@
       </div>
     </div>
   </div>
+
+  <!-- Modals -->
+  <ModalFoodDistribution 
+    v-if="showDistributionModal"
+    :open="showDistributionModal"
+    :campaign="campaign"
+    @close="showDistributionModal = false"
+    @success="loadData"
+  />
+
+  <ModalFoodOrder 
+    v-if="showOrderModal"
+    :open="showOrderModal"
+    :campaign="campaign"
+    @close="showOrderModal = false"
+    @success="loadData"
+  />
 </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useGerantStore } from '@/stores/gerant'
+import { productService } from '@/services/api'
 import { formatCurrency, getDaysRemaining } from '@/utils/formatters'
+import ModalFoodDistribution from '@/components/common/ModalFoodDistribution.vue'
+import ModalFoodOrder from '@/components/common/ModalFoodOrder.vue'
 
 const gerantStore = useGerantStore()
 const activeCampaigns = computed(() => gerantStore.activeCampaigns)
 const selectedCampaignId = ref('')
 const loading = ref(false)
+const showDistributionModal = ref(false)
+const showOrderModal = ref(false)
+const lowStockItems = ref([])
 
 const campaign = computed(() => {
   if (selectedCampaignId.value) {
@@ -87,6 +122,10 @@ async function loadData() {
     if (activeCampaigns.value.length > 0 && !selectedCampaignId.value) {
       selectedCampaignId.value = activeCampaigns.value[0]._id || activeCampaigns.value[0].id
     }
+
+    if (campaign.value) {
+      await fetchStockAlerts()
+    }
   } catch (error) {
     console.error('Erreur lors du chargement des données:', error)
   } finally {
@@ -94,6 +133,14 @@ async function loadData() {
   }
 }
 
-
-
+async function fetchStockAlerts() {
+  try {
+    const farmId = campaign.value.farm._id || campaign.value.farm
+    const res = await productService.getAll({ farm: farmId, category: 'Aliment' })
+    const products = res.data.products || res.data || []
+    lowStockItems.value = products.filter(p => p.quantity <= p.reorderLevel)
+  } catch (err) {
+    console.error('Erreur alertes stock:', err)
+  }
+}
 </script>
