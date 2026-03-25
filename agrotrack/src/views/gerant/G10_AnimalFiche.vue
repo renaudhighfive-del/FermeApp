@@ -208,6 +208,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { animalService, campaignService, eventService } from '@/services/api'
+import { formatCurrency, formatDate, getHealthClass, getEventBadgeClass } from '@/utils/formatters'
 import QRCode from 'qrcode'
 
 const router = useRouter()
@@ -253,33 +254,7 @@ async function loadAnimalData() {
   }
 }
 
-function formatDate(date) {
-  if (!date) return '-'
-  const d = new Date(date)
-  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
-}
 
-function getHealthClass(status) {
-  const classes = {
-    'Sain': 'badge-sain',
-    'Malade': 'badge-anomalie',
-    'Suspect': 'badge-observation',
-    'Décédé': 'badge-urgent'
-  }
-  return classes[status] || 'badge-inactif'
-}
-
-function getEventBadgeClass(type) {
-  const classes = {
-    'vaccination': 'badge-encours',
-    'treatment': 'badge-pis',
-    'mortality': 'badge-anomalie',
-    'feeding': 'badge-vol',
-    'weight': 'badge-prep',
-    'other': 'badge-inactif'
-  }
-  return classes[type] || 'badge-inactif'
-}
 
 async function showQRCode() {
   showQRModal.value = true

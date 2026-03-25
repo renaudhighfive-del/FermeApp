@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useGerantStore } from '@/stores/gerant'
 import { saleService } from '@/services/api'
+import { formatCurrency } from '@/utils/formatters'
 
 const gerantStore = useGerantStore()
 const activeCampaigns = computed(() => gerantStore.activeCampaigns)
@@ -81,29 +82,26 @@ async function loadSales() {
 }
 
 async function submitSale() {
-  if (!campaign.value || !formData.value.animalsSold || !formData.value.pricePerUnit) {
-    alert('Veuillez remplir tous les champs obligatoires')
+  if (!formData.value.animalsSold || !formData.value.pricePerUnit) {
+    alert('Veuillez remplir les champs obligatoires')
     return
   }
-  
+
+  isLoading.value = true
   try {
-    isLoading.value = true
-    const totalRevenue = parseInt(formData.value.animalsSold) * parseFloat(formData.value.pricePerUnit)
-    await saleService.create({
-      campaign: campaign.value._id,
+    const campaignId = campaign.value._id || campaign.value.id
+    const saleData = {
+      campaign: campaignId,
       farm: campaign.value.farm?._id || campaign.value.farm,
       saleDate: formData.value.saleDate,
       animalsSold: parseInt(formData.value.animalsSold),
-      pricePerUnit: parseFloat(formData.value.pricePerUnit),
-      totalRevenue: totalRevenue,
+      pricePerUnit: parseInt(formData.value.pricePerUnit),
       totalWeight: formData.value.totalWeight ? parseFloat(formData.value.totalWeight) : null,
       buyer: formData.value.buyer,
       notes: formData.value.notes
-    })
-    
-    // Reload sales
-    const res = await saleService.getAll({ campaign: campaign.value._id, limit: 100 })
-    sales.value = res.data || []
+    }
+
+    await saleService.create(saleData)
     
     // Reset form and close modal
     formData.value = {
@@ -115,6 +113,9 @@ async function submitSale() {
       notes: ''
     }
     showModal.value = false
+    
+    // Reload everything
+    await loadData()
   } catch (error) {
     console.error('Error creating sale:', error)
     alert('Erreur lors de l\'enregistrement de la vente')
@@ -129,11 +130,6 @@ function formatDate(dateString) {
   return date.toLocaleDateString('fr-FR')
 }
 
-function formatCurrency(value) {
-  if (!value) return '0 FCFA'
-  if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M FCFA`
-  return `${(value / 1000).toFixed(0)}k FCFA`
-}
 
 function getPaymentClass(status) {
   if (status === 'Encaissé') return 'badge badge-success'
@@ -212,6 +208,9 @@ function getPaymentClass(status) {
       </div>
     </div>
   </div>
+
+ 
+  
 
   <!-- Modal vente -->
   <div class="modal-overlay" :class="{open:showModal}" @click.self="showModal=false">

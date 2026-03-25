@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useGerantStore } from '@/stores/gerant'
 import { useAuthStore } from '@/stores/auth'
 import { eventService, healthService } from '@/services/api'
+import { formatCurrency, formatDate, extractDay, extractMonth, getDaysRemaining, getAnimalPercentage, getBudgetPercentage, getEventBadgeClass, formatEventDate } from '@/utils/formatters'
 
 const gerantStore = useGerantStore()
 const authStore = useAuthStore()
@@ -10,6 +11,7 @@ const authStore = useAuthStore()
 const recentEvents = ref([])
 const upcomingVaccinations = ref([])
 const tasksCount = ref(0)
+const selectedCampaignId = ref('')
 
 onMounted(async () => {
   await loadData()
@@ -19,6 +21,10 @@ async function loadData() {
   try {
     await gerantStore.fetchGerantFarms()
     await gerantStore.fetchGerantCampaigns()
+    
+    if (gerantStore.activeCampaigns.length > 0 && !selectedCampaignId.value) {
+      selectedCampaignId.value = gerantStore.activeCampaigns[0]._id || gerantStore.activeCampaigns[0].id
+    }
     
     // Charger les événements récents
     const eventsRes = await eventService.getAll({ limit: 5, sort: '-createdAt' })
@@ -37,7 +43,23 @@ async function loadData() {
 }
 
 const activeCampaign = computed(() => {
-  return gerantStore.campaigns.find(c => c.status === 'En cours') || null
+  if (selectedCampaignId.value) {
+    return gerantStore.activeCampaigns.find(c => (c._id || c.id) === selectedCampaignId.value) || gerantStore.activeCampaigns[0] || null
+  }
+  return gerantStore.activeCampaigns[0] || null
+})
+
+const totalKPIs = computed(() => {
+  const campaigns = gerantStore.activeCampaigns
+  return {
+    currentAnimalCount: campaigns.reduce((sum, c) => sum + (c.currentAnimalCount || 0), 0),
+    deaths: campaigns.reduce((sum, c) => sum + (c.deaths || 0), 0),
+    feedConsumed: campaigns.reduce((sum, c) => sum + (c.feedConsumed || 0), 0),
+    expectedRevenue: campaigns.reduce((sum, c) => sum + (c.expectedRevenue || 0), 0),
+    mortality: campaigns.length > 0 
+      ? Math.round((campaigns.reduce((sum, c) => sum + (c.deaths || 0), 0) / campaigns.reduce((sum, c) => sum + (c.initialAnimalCount || 1), 0)) * 100) 
+      : 0
+  }
 })
 
 const currentUserName = computed(() => {
@@ -59,66 +81,8 @@ const currentDate = computed(() => {
   }).slice(1)
 })
 
-function formatDate(date) {
-  if (!date) return '-'
-  const d = new Date(date)
-  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
-}
 
-function formatEventDate(date) {
-  if (!date) return '-'
-  const d = new Date(date)
-  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
-}
 
-function formatCurrency(value) {
-  if (!value) return '0 FCFA'
-  if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M FCFA`
-  }
-  return `${(value / 1000).toFixed(0)}k FCFA`
-}
-
-function getDaysRemaining(startDate) {
-  if (!startDate) return 0
-  const start = new Date(startDate)
-  const today = new Date()
-  const diffTime = today.getTime() - start.getTime()
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  return Math.max(0, diffDays)
-}
-
-function getAnimalPercentage(campaign) {
-  if (!campaign.initialAnimalCount) return 0
-  return Math.round((campaign.currentAnimalCount / campaign.initialAnimalCount) * 100)
-}
-
-function getBudgetPercentage(campaign) {
-  if (!campaign.budget) return 0
-  return Math.round((campaign.spent / campaign.budget) * 100)
-}
-
-function getEventBadgeClass(type) {
-  const classes = {
-    'Pesée': 'badge-vol',
-    'Alimentation': 'badge-pis',
-    'Mortalité': 'badge-anomalie',
-    'Vaccination': 'badge-encours',
-    'Observation': 'badge-observation'
-  }
-  return classes[type] || 'badge-inactif'
-}
-
-function extractDay(date) {
-  if (!date) return '-'
-  return new Date(date).getDate().toString()
-}
-
-function extractMonth(date) {
-  if (!date) return '-'
-  const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc']
-  return months[new Date(date).getMonth()]
-}
 </script>
 
 
@@ -134,13 +98,13 @@ function extractMonth(date) {
   </div>
 
   <!-- KPI Grid -->
-  <div class="kpi-grid mb-gap" v-if="activeCampaign">
+  <div class="kpi-grid mb-gap" v-if="gerantStore.activeCampaigns.length > 0">
     <div class="kpi-card">
       <div class="kpi-top">
         <div>
           <div class="kpi-label">Animaux vivants</div>
-          <div class="kpi-value" style="color:var(--success)">{{ activeCampaign.currentAnimalCount }}</div>
-          <div class="kpi-sub up">{{ activeCampaign.name }}</div>
+          <div class="kpi-value" style="color:var(--success)">{{ totalKPIs.currentAnimalCount }}</div>
+          <div class="kpi-sub up">Total {{ gerantStore.activeCampaigns.length }} campagnes</div>
         </div>
         <div class="kpi-icon" style="background:#D4EDDA">
           <svg width="24" height="24" fill="none" stroke="#2D6A4F" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
@@ -150,9 +114,9 @@ function extractMonth(date) {
     <div class="kpi-card">
       <div class="kpi-top">
         <div>
-          <div class="kpi-label">Pertes</div>
-          <div class="kpi-value" style="color:var(--danger)">{{ activeCampaign.deaths }}</div>
-          <div class="kpi-sub">Mortalité: {{ activeCampaign.mortality }}%</div>
+          <div class="kpi-label">Pertes totales</div>
+          <div class="kpi-value" style="color:var(--danger)">{{ totalKPIs.deaths }}</div>
+          <div class="kpi-sub">Mortalité moy: {{ totalKPIs.mortality }}%</div>
         </div>
         <div class="kpi-icon" style="background:#FDECEA">
           <svg width="24" height="24" fill="none" stroke="#D62828" stroke-width="1.5" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
@@ -163,8 +127,8 @@ function extractMonth(date) {
       <div class="kpi-top">
         <div>
           <div class="kpi-label">Aliments consommés</div>
-          <div class="kpi-value" style="color:var(--warn)">{{ activeCampaign.feedConsumed }} kg</div>
-          <div class="kpi-sub warn">FCR: {{ activeCampaign.fcr }}</div>
+          <div class="kpi-value" style="color:var(--warn)">{{ totalKPIs.feedConsumed }} kg</div>
+          <div class="kpi-sub warn">Cumulatif</div>
         </div>
         <div class="kpi-icon" style="background:#FFF7ED">
           <svg width="24" height="24" fill="none" stroke="#E07B39" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
@@ -175,8 +139,8 @@ function extractMonth(date) {
       <div class="kpi-top">
         <div>
           <div class="kpi-label">Revenu estimé</div>
-          <div class="kpi-value" style="color:var(--success)">{{ formatCurrency(activeCampaign.expectedRevenue) }}</div>
-          <div class="kpi-sub">FCFA prévisionnel</div>
+          <div class="kpi-value" style="color:var(--success)">{{ formatCurrency(totalKPIs.expectedRevenue) }}</div>
+          <div class="kpi-sub">Total prévisionnel</div>
         </div>
         <div class="kpi-icon" style="background:#D4EDDA">
           <svg width="24" height="24" fill="none" stroke="#2D6A4F" stroke-width="1.5" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>

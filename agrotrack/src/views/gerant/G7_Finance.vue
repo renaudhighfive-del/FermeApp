@@ -3,6 +3,7 @@ import { ref, computed, onMounted,watch } from 'vue'
 import { useGerantStore } from '@/stores/gerant'
 import {transactionService } from '@/services/api'
 import ModalNewTransaction from '@/components/common/ModalNewTransaction.vue'
+import { formatCurrency, formatDate } from '@/utils/formatters'
 
 const gerantStore = useGerantStore()
 const activeCampaigns = computed(() => gerantStore.activeCampaigns)
@@ -71,16 +72,12 @@ const estimatedProfit = computed(() => {
   return campaign.value.actualRevenue - campaign.value.spent
 })
 
-function formatDate(date) {
-  if (!date) return '-'
-  const d = new Date(date)
-  return d.toLocaleDateString('fr-FR')
-}
+// function formatDate(date) {
+//   if (!date) return '-'
+//   const d = new Date(date)
+//   return d.toLocaleDateString('fr-FR')
+// }
 
-function formatCurrency(value) {
-  if (!value) return '0 FCFA'
-  return new Intl.NumberFormat('fr-FR').format(value) + ' FCFA'
-}
 </script>
 <template>
 <div>
@@ -195,6 +192,7 @@ function formatCurrency(value) {
   </div>
 
   <ModalNewTransaction 
+    v-if="showTransactionModal"
     :open="showTransactionModal" 
     :campaign="campaign" 
     :type="transactionType" 

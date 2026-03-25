@@ -32,7 +32,7 @@
     <div class="kpi-grid mb-gap">
       <div class="kpi-card"><div class="kpi-label">Consommation aliments</div><div class="kpi-value" style="color:var(--warn)">{{ campaign.feedConsumed }} kg</div><div class="kpi-sub warn">FCR: {{ campaign.fcr }}</div></div>
       <div class="kpi-card"><div class="kpi-label">Coût alimentation</div><div class="kpi-value">{{ formatCurrency(campaign.feedCost) }}</div></div>
-      <div class="kpi-card"><div class="kpi-label">Consommation/jour</div><div class="kpi-value">{{ (campaign.feedConsumed / getDaysRemaining() || 0).toFixed(1) }} kg</div></div>
+      <div class="kpi-card"><div class="kpi-label">Consommation/jour</div><div class="kpi-value">{{ (campaign.feedConsumed / getDaysRemaining(campaign.startDate) || 0).toFixed(1) }} kg</div></div>
       <div class="kpi-card"><div class="kpi-label">Budget stock</div><div class="kpi-value">{{ formatCurrency(campaign.feedCost) }}</div></div>
     </div>
 
@@ -60,6 +60,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useGerantStore } from '@/stores/gerant'
+import { formatCurrency, getDaysRemaining } from '@/utils/formatters'
 
 const gerantStore = useGerantStore()
 const activeCampaigns = computed(() => gerantStore.activeCampaigns)
@@ -93,18 +94,6 @@ async function loadData() {
   }
 }
 
-function formatCurrency(value) {
-  if (!value) return '0 FCFA'
-  if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M FCFA`
-  return `${(value / 1000).toFixed(0)}k FCFA`
-}
 
-function getDaysRemaining() {
-  if (!campaign.value?.startDate) return 1
-  const start = new Date(campaign.value.startDate)
-  const today = new Date()
-  const diffTime = today.getTime() - start.getTime()
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  return Math.max(1, diffDays)
-}
+
 </script>

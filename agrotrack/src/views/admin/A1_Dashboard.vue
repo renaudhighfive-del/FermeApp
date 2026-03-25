@@ -3,7 +3,6 @@ import { ref, computed, onMounted } from 'vue'
 import { useAuthStore }  from '@/stores/auth.js'
 import { useUiStore }    from '@/stores/ui.js'
 import { useAdminStore } from '@/stores/admin.js'
-import ModalNewCampaign  from '@/components/common/ModalNewCampaign.vue'
 
 const auth      = useAuthStore()
 const ui        = useUiStore()

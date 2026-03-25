@@ -128,6 +128,7 @@
     </div>
 
     <ModalAddAnimal
+      v-if="showAddModal"
       :open="showAddModal"
       :campaign="campaign"
       @close="handleAddModalClose"
@@ -140,6 +141,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useGerantStore } from "@/stores/gerant";
 import { animalService } from "@/services/api";
+import { getHealthClass } from "@/utils/formatters";
 import ModalAddAnimal from "@/components/common/ModalAddAnimal.vue";
 
 const router = useRouter();
@@ -226,15 +228,6 @@ const uniqueLots = computed(() => {
 
 const uniqueLocations = computed(() => uniqueLots.value);
 
-function getHealthClass(status) {
-  const classes = {
-    Sain: "badge-sain",
-    Malade: "badge-anomalie",
-    Suspect: "badge-observation",
-    Décédé: "badge-urgent",
-  };
-  return classes[status] || "badge-inactif";
-}
 
 function viewAnimalFiche(animal) {
   router.push(`/gerant/animal/${animal._id || animal.id}`);

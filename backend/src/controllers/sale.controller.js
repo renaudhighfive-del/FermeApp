@@ -1,4 +1,5 @@
 import Sale from "../models/Sale.js";
+import Campaign from "../models/Campaign.js";
 
 export const createSale = async (req, res) => {
   try {
@@ -9,10 +10,11 @@ export const createSale = async (req, res) => {
       animalsSold,
       totalWeight,
       pricePerUnit,
-      totalRevenue,
       buyer,
       notes,
     } = req.body;
+
+    const revenue = Number(animalsSold) * Number(pricePerUnit);
 
     const sale = new Sale({
       campaign,
@@ -21,12 +23,23 @@ export const createSale = async (req, res) => {
       animalsSold,
       totalWeight,
       pricePerUnit,
-      totalRevenue,
+      totalRevenue: revenue,
       buyer,
       notes,
     });
 
     await sale.save();
+
+    // Mettre à jour les statistiques de la campagne
+    if (campaign) {
+      const camp = await Campaign.findById(campaign);
+      if (camp) {
+        camp.actualRevenue = (camp.actualRevenue || 0) + revenue;
+        camp.currentAnimalCount = Math.max(0, (camp.currentAnimalCount || 0) - Number(animalsSold));
+        await camp.save();
+      }
+    }
+
     res.status(201).json(sale);
   } catch (error) {
     res.status(400).json({ error: error.message });

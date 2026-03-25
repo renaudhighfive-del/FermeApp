@@ -74,6 +74,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { transactionService } from '@/services/api'
+import { formatCurrency } from '@/utils/formatters'
 
 const props = defineProps({
   open: Boolean,

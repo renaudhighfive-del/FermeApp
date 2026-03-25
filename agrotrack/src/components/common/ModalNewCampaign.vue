@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useGerantStore } from '@/stores/gerant'
 
 const props = defineProps({ open: Boolean })
@@ -14,9 +14,19 @@ const form = ref({
   farm: '',
   name: '',
   animalType: '',
-  startDate: '',
+  startDate: new Date().toISOString().split('T')[0],
   initialAnimalCount: '',
-  budget: ''
+  budget: '',
+  agents: []
+})
+
+onMounted(async () => {
+  await gerantStore.fetchGerantFarms()
+  await gerantStore.fetchAgents()
+  
+  if (gerantStore.farms.length > 0) {
+    form.value.farm = gerantStore.farms[0]._id || gerantStore.farms[0].id
+  }
 })
 
 const noFarmsAssigned = computed(() => gerantStore.farms.length === 0)
@@ -41,19 +51,20 @@ async function create() {
 
   loading.value = true
 
-  try {
-    const campaignData = {
-      farm: form.value.farm,
-      name: form.value.name,
-      animalType: form.value.animalType,
-      startDate: form.value.startDate,
-      initialAnimalCount: parseInt(form.value.initialAnimalCount),
-      budget: parseInt(form.value.budget)
-    }
+    try {
+      const campaignData = {
+        farm: form.value.farm,
+        name: form.value.name,
+        animalType: form.value.animalType,
+        startDate: form.value.startDate,
+        initialAnimalCount: parseInt(form.value.initialAnimalCount),
+        budget: parseInt(form.value.budget),
+        agents: form.value.agents
+      }
 
-    await gerantStore.createCampaign(campaignData)
-    emit('created', campaignData)
-    emit('close')
+      const createdCampaign = await gerantStore.createCampaign(campaignData)
+      emit('created', createdCampaign)
+      emit('close');
 
     // Reset form
     form.value = {
@@ -159,22 +170,33 @@ watch(
           <input class="form-input" type="number" v-model="form.budget" placeholder="Ex: 850000"/>
         </div>
 
-        <div v-if="error" class="alert-card alert-danger">
+        <div class="form-group">
+          <label class="form-label">Agents assignés</label>
+          <div class="agents-selection" style="max-height: 120px; overflow-y: auto; border: 1px solid var(--border); padding: 10px; border-radius: 6px;">
+            <div v-for="agent in gerantStore.agents" :key="agent._id || agent.id" class="agent-checkbox" style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <input type="checkbox" :id="'agent-' + (agent._id || agent.id)" :value="agent._id || agent.id" v-model="form.agents">
+              <label :for="'agent-' + (agent._id || agent.id)" style="font-size: 13px; cursor: pointer;">{{ agent.name }}</label>
+            </div>
+          </div>
+          <p class="text-soft" style="font-size: 11px; margin-top: 4px;">Sélectionnez les agents qui travailleront sur cette campagne.</p>
+        </div>
+
+        <div v-if="error" class="alert-card alert-danger" style="margin-top: 12px;">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           <div class="alert-content">
             <div class="alert-desc">{{ error }}</div>
           </div>
         </div>
+
+        <div class="modal-footer" style="margin-top: 20px; padding: 0; border: none;">
+          <button class="btn btn-outline" @click="$emit('close')">Annuler</button>
+          <button v-if="!noFarmsAssigned" class="btn btn-primary" @click="create" :disabled="loading">
+            <span v-if="loading">Création en cours...</span>
+            <span v-else>Créer la campagne</span>
+          </button>
         </div>
       </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-outline" @click="$emit('close')">Annuler</button>
-        <button v-if="!noFarmsAssigned" class="btn btn-primary" @click="create" :disabled="loading">
-          <span v-if="loading">Création en cours...</span>
-          <span v-else>Créer la campagne</span>
-        </button>
-      </div>
+    </div>
   </div>
 </template>
 

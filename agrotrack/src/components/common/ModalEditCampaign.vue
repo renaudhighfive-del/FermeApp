@@ -55,6 +55,26 @@
           <input class="form-input" type="number" v-model="form.budget" placeholder="Ex: 5000000"/>
         </div>
 
+        <div class="form-group">
+          <label class="form-label">Statut</label>
+          <select class="form-input" v-model="form.status">
+            <option value="Préparation">Préparation</option>
+            <option value="En cours">En cours</option>
+            <option value="Terminée">Terminée</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Agents assignés</label>
+          <div class="agents-selection" style="max-height: 120px; overflow-y: auto; border: 1px solid var(--border); padding: 10px; border-radius: 6px;">
+            <div v-for="agent in gerantStore.agents" :key="agent._id || agent.id" class="agent-checkbox" style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <input type="checkbox" :id="'edit-agent-' + (agent._id || agent.id)" :value="agent._id || agent.id" v-model="form.agents">
+              <label :for="'edit-agent-' + (agent._id || agent.id)" style="font-size: 13px; cursor: pointer;">{{ agent.name }}</label>
+            </div>
+          </div>
+          <p class="text-soft" style="font-size: 11px; margin-top: 4px;">Sélectionnez les agents qui travailleront sur cette campagne.</p>
+        </div>
+
         <!-- Erreur -->
         <div v-if="error" class="alert-card alert-danger">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -77,7 +97,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useGerantStore } from '@/stores/gerant'
 
 const props = defineProps({
@@ -95,7 +115,13 @@ const form = ref({
   animalType: '',
   startDate: '',
   initialAnimalCount: '',
-  budget: ''
+  budget: '',
+  status: 'Préparation',
+  agents: []
+})
+
+onMounted(async () => {
+  await gerantStore.fetchAgents()
 })
 
 // Pré-remplir le formulaire quand la campagne change
@@ -108,7 +134,9 @@ watch(
         animalType: newCampaign.animalType || '',
         startDate: newCampaign.startDate ? new Date(newCampaign.startDate).toISOString().split('T')[0] : '',
         initialAnimalCount: newCampaign.initialAnimalCount || '',
-        budget: newCampaign.budget || ''
+        budget: newCampaign.budget || '',
+        status: newCampaign.status || 'Préparation',
+        agents: newCampaign.agents ? newCampaign.agents.map(a => a._id || a.id || a) : []
       }
     }
   },
@@ -132,11 +160,13 @@ async function update() {
       animalType: form.value.animalType,
       startDate: form.value.startDate,
       initialAnimalCount: parseInt(form.value.initialAnimalCount),
-      budget: parseInt(form.value.budget)
+      budget: parseInt(form.value.budget),
+      status: form.value.status,
+      agents: form.value.agents
     }
 
-    await gerantStore.updateCampaign(props.campaign._id || props.campaign.id, campaignData)
-    emit('updated', campaignData)
+    const updatedCampaign = await gerantStore.updateCampaign(props.campaign._id || props.campaign.id, campaignData)
+    emit('updated', updatedCampaign)
     emit('close')
   } catch (err) {
     error.value = err.response?.data?.error || 'Erreur lors de la modification de la campagne'

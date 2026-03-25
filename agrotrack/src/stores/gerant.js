@@ -10,6 +10,7 @@ export const useGerantStore = defineStore("gerant", () => {
   // ── State ────────────────────────────────────────────────────
   const farms = ref([]); // Fermes assignées au gérant
   const campaigns = ref([]); // Campagnes du gérant
+  const agents = ref([]); // Tous les agents du système
   const loading = ref(false);
   const error = ref(null);
 
@@ -53,6 +54,16 @@ export const useGerantStore = defineStore("gerant", () => {
       console.error(err);
     } finally {
       loading.value = false;
+    }
+  }
+
+  async function fetchAgents() {
+    try {
+      const { userService } = await import("@/services/api");
+      const response = await userService.getAll({ role: "agent", limit: 100 });
+      agents.value = response.data.users || response.data;
+    } catch (err) {
+      console.error("Erreur lors du chargement des agents:", err);
     }
   }
 
@@ -176,10 +187,12 @@ export const useGerantStore = defineStore("gerant", () => {
     loading,
     error,
     activeCampaigns,
+    agents,
     completedCampaigns,
     preparationCampaigns,
     fetchGerantFarms,
     fetchGerantCampaigns,
+    fetchAgents,
     createCampaign,
     updateCampaign,
     deleteCampaign,

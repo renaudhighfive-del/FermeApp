@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useGerantStore } from '@/stores/gerant'
 import { eventService, campaignService, animalService } from '@/services/api'
+import { formatCurrency, formatDate, getAnimalPercentage, getBudgetPercentage, getDaysRemaining, getAnimalTypeClass, getStatusClass, getHealthClass, getEventBadgeClass } from '@/utils/formatters'
 import ModalAddAnimal from '@/components/common/ModalAddAnimal.vue'
 import ModalHealthEvent from '@/components/common/ModalHealthEvent.vue'
 import ModalEditCampaign from '@/components/common/ModalEditCampaign.vue'
@@ -54,38 +55,6 @@ async function loadCampaignData() {
   }
 }
 
-function formatDate(date) {
-  if (!date) return '-'
-  const d = new Date(date)
-  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
-}
-
-function getDaysRemaining(startDate) {
-  if (!startDate) return 0
-  const start = new Date(startDate)
-  const today = new Date()
-  const diffTime = today.getTime() - start.getTime()
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  return Math.max(0, diffDays)
-}
-
-function getAnimalTypeClass(animalType) {
-  const classes = {
-    'Volaille': 'badge-vol',
-    'Bétail': 'badge-bet',
-    'Pisciculture': 'badge-pis'
-  }
-  return classes[animalType] || ''
-}
-
-function getStatusClass(status) {
-  const classes = {
-    'En cours': 'badge-encours',
-    'Terminée': 'badge-terminee',
-    'Préparation': 'badge-prep'
-  }
-  return classes[status] || ''
-}
 
 function goAnimal(id) {
   router.push('/gerant/animal/' + id.replace('#', ''))
@@ -99,29 +68,6 @@ const filteredAnimals = computed(() => {
     animal._id?.toLowerCase().includes(animalSearch.value.toLowerCase())
   )
 })
-
-// Nouvelles fonctions
-function getHealthClass(status) {
-  const classes = {
-    'Sain': 'badge-sain',
-    'Malade': 'badge-anomalie',
-    'Suspect': 'badge-observation',
-    'Décédé': 'badge-urgent'
-  }
-  return classes[status] || 'badge-inactif'
-}
-
-function getEventBadgeClass(type) {
-  const classes = {
-    'vaccination': 'badge-encours',
-    'treatment': 'badge-pis',
-    'mortality': 'badge-anomalie',
-    'feeding': 'badge-vol',
-    'weight': 'badge-prep',
-    'other': 'badge-inactif'
-  }
-  return classes[type] || 'badge-inactif'
-}
 
 function showQRCode(animal) {
   selectedAnimal.value = animal
@@ -596,11 +542,11 @@ Généré le: ${reportData.date}
 
   <!-- Modals -->
   <!-- Modal Modifier Campagne -->
-  <ModalEditCampaign :open="showEditModal" :campaign="campaign" @close="showEditModal = false"
+  <ModalEditCampaign v-if="showEditModal" :open="showEditModal" :campaign="campaign" @close="showEditModal = false"
     @updated="loadCampaign" />
 
   <!-- Modal Créer Événement Santé -->
-  <ModalHealthEvent :open="showHealthModal" :campaign="campaign" @close="showHealthModal = false"
+  <ModalHealthEvent v-if="showHealthModal" :open="showHealthModal" :campaign="campaign" @close="showHealthModal = false"
     @created="loadCampaignData" />
   </div>
 

@@ -3,7 +3,7 @@ import Animal from "../models/Animal.js";
 
 export const createCampaign = async (req, res) => {
   try {
-    const { name, farm, animalType, startDate, initialAnimalCount, budget } =
+    const { name, farm, animalType, startDate, initialAnimalCount, budget, agents } =
       req.body;
 
     const campaign = new Campaign({
@@ -14,6 +14,8 @@ export const createCampaign = async (req, res) => {
       initialAnimalCount,
       currentAnimalCount: initialAnimalCount,
       budget,
+      agents: agents || [],
+      managers: [req.user._id] // Le créateur est manager par défaut
     });
 
     await campaign.save();
@@ -70,7 +72,7 @@ export const updateCampaign = async (req, res) => {
       req.params.id,
       req.body,
       { new: true }
-    ).populate("farm");
+    ).populate("farm").populate("agents", "name email role");
 
     if (!campaign) return res.status(404).json({ error: "Campaign not found" });
     res.json(campaign);

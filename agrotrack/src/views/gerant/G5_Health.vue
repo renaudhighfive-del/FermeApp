@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useGerantStore } from '@/stores/gerant'
 import { healthService } from '@/services/api'
 import ModalHealthEvent from '@/components/common/ModalHealthEvent.vue'
+import { formatCurrency, formatDate, getHealthClass, getEventTypeClass, getStatusClass } from '@/utils/formatters'
 
 const gerantStore = useGerantStore()
 const activeCampaigns = computed(() => gerantStore.activeCampaigns)
@@ -53,31 +54,7 @@ async function loadHealthEvents() {
   }
 }
 
-function formatDate(date) {
-  if (!date) return '-'
-  const d = new Date(date)
-  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
-}
 
-function getEventTypeClass(type) {
-  const classes = {
-    'Anomalie': 'badge-anomalie',
-    'Vaccination': 'badge-encours',
-    'Mortalité': 'badge-danger',
-    'Observation': 'badge-observation'
-  }
-  return classes[type] || 'badge-inactif'
-}
-
-function getStatusClass(status) {
-  const classes = {
-    'Suivi': 'badge-urgent',
-    'Terminé': 'badge-termine',
-    'Clôturé': 'badge-terminee',
-    'En cours': 'badge-encours2'
-  }
-  return classes[status] || 'badge-inactif'
-}
 
 async function handleEventModalClose() {
   showEventModal.value = false
@@ -148,7 +125,7 @@ async function handleEventModalClose() {
     </div>
   </div>
 
-  <ModalHealthEvent :open="showEventModal" :campaign="campaign" @close="handleEventModalClose"/>
+  <ModalHealthEvent v-if="showEventModal" :open="showEventModal" :campaign="campaign" @close="handleEventModalClose"/>
 </div>
 </template>
 

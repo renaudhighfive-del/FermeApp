@@ -1,3 +1,68 @@
+<script setup>
+import { ref, onMounted,computed } from 'vue'
+import { useGerantStore } from '@/stores/gerant'
+import { formatCurrency, formatDate, getDaysRemaining, getAnimalPercentage, getBudgetPercentage, getAnimalTypeClass, getStatusClass } from '@/utils/formatters'
+import ModalNewCampaign from '@/components/common/ModalNewCampaign.vue'
+import ModalEditCampaign from '@/components/common/ModalEditCampaign.vue'
+
+const gerantStore = useGerantStore()
+const showModal = ref(false)
+const showEditModal = ref(false)
+const selectedCampaign = ref(null)
+const activeFilter = ref('Toutes')
+const selectedAnimalType = ref('')
+const loading = ref(false)
+
+onMounted(async () => {
+  await loadData()
+})
+
+async function loadData() {
+  loading.value = true
+  try {
+    await gerantStore.fetchGerantFarms()
+    await gerantStore.fetchGerantCampaigns()
+  } catch (error) {
+    console.error('Erreur lors du chargement des données:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const filteredCampaigns = computed(() => {
+  let filtered = gerantStore.campaigns
+
+  if (activeFilter.value !== 'Toutes') {
+    filtered = filtered.filter(c => c.status === activeFilter.value)
+  }
+
+  if (selectedAnimalType.value) {
+    filtered = filtered.filter(c => c.animalType === selectedAnimalType.value)
+  }
+
+  return filtered
+})
+
+
+
+
+async function handleModalClose() {
+  showModal.value = false
+  await loadData()
+}
+
+function editCampaign(campaign) {
+  selectedCampaign.value = campaign
+  showEditModal.value = true
+}
+
+async function handleEditModalClose() {
+  showEditModal.value = false
+  selectedCampaign.value = null
+  await loadData()
+}
+</script>
+
 <template>
 <div>
   <div class="page-header">
@@ -77,117 +142,9 @@
     </div>
   </div>
 
-  <ModalNewCampaign :open="showModal" @close="handleModalClose"/>
-  <ModalEditCampaign :open="showEditModal" :campaign="selectedCampaign" @close="handleEditModalClose"/>
+  <ModalNewCampaign v-if="showModal" :open="showModal" @close="handleModalClose"/>
+  <ModalEditCampaign v-if="showEditModal" :open="showEditModal" :campaign="selectedCampaign" @close="handleEditModalClose"/>
 </div>
 </template>
 
-<script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useGerantStore } from '@/stores/gerant'
-import ModalNewCampaign from '@/components/common/ModalNewCampaign.vue'
-import ModalEditCampaign from '@/components/common/ModalEditCampaign.vue'
-
-const gerantStore = useGerantStore()
-const showModal = ref(false)
-const showEditModal = ref(false)
-const selectedCampaign = ref(null)
-const activeFilter = ref('Toutes')
-const selectedAnimalType = ref('')
-const loading = ref(false)
-
-onMounted(async () => {
-  await loadData()
-})
-
-async function loadData() {
-  loading.value = true
-  try {
-    await gerantStore.fetchGerantFarms()
-    await gerantStore.fetchGerantCampaigns()
-  } catch (error) {
-    console.error('Erreur lors du chargement des données:', error)
-  } finally {
-    loading.value = false
-  }
-}
-
-const filteredCampaigns = computed(() => {
-  let filtered = gerantStore.campaigns
-
-  if (activeFilter.value !== 'Toutes') {
-    filtered = filtered.filter(c => c.status === activeFilter.value)
-  }
-
-  if (selectedAnimalType.value) {
-    filtered = filtered.filter(c => c.animalType === selectedAnimalType.value)
-  }
-
-  return filtered
-})
-
-function formatDate(date) {
-  if (!date) return '-'
-  const d = new Date(date)
-  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
-}
-
-function formatCurrency(value) {
-  if (!value) return '0 FCFA'
-  return `${(value / 1000).toFixed(0)}k FCFA`
-}
-
-function getDaysRemaining(startDate) {
-  if (!startDate) return 0
-  const start = new Date(startDate)
-  const today = new Date()
-  const diffTime = today.getTime() - start.getTime()
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  return Math.max(0, diffDays)
-}
-
-function getAnimalPercentage(campaign) {
-  if (!campaign.initialAnimalCount) return 0
-  return Math.round((campaign.currentAnimalCount / campaign.initialAnimalCount) * 100)
-}
-
-function getBudgetPercentage(campaign) {
-  if (!campaign.budget) return 0
-  return Math.round((campaign.spent / campaign.budget) * 100)
-}
-
-function getAnimalTypeClass(animalType) {
-  const classes = {
-    'Volaille': 'badge-vol',
-    'Bétail': 'badge-bet',
-    'Pisciculture': 'badge-pis'
-  }
-  return classes[animalType] || ''
-}
-
-function getStatusClass(status) {
-  const classes = {
-    'En cours': 'badge-encours',
-    'Terminée': 'badge-terminee',
-    'Préparation': 'badge-prep'
-  }
-  return classes[status] || ''
-}
-
-async function handleModalClose() {
-  showModal.value = false
-  await loadData()
-}
-
-function editCampaign(campaign) {
-  selectedCampaign.value = campaign
-  showEditModal.value = true
-}
-
-async function handleEditModalClose() {
-  showEditModal.value = false
-  selectedCampaign.value = null
-  await loadData()
-}
-</script>
 
