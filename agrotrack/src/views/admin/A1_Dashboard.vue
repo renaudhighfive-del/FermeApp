@@ -274,7 +274,7 @@ const exporterPDF = async () => {
       filename: `Tableau-Bord-AgroTrack-${new Date().toLocaleDateString('fr-FR')}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
-        scale: 2,
+        scale: 1,
         useCORS: true,
         logging: false,
         letterRendering: true,
@@ -313,17 +313,62 @@ const exporterPDF = async () => {
             
             /* Désactiver les gradients complexes qui utilisent oklch */
             * { background-image: none !important; }
+            
+            /* Remplacer TOUTES les occurrences de oklch/oklab */
+            * { color: #1A1008 !important; }
+            * { background-color: #FFFFFF !important; }
+            * { border-color: #E8D9C5 !important; }
+            
+            /* Remplacements spécifiques pour les éléments importants */
+            .text-slate-900 { color: #0f172a !important; }
+            .text-slate-600 { color: #475569 !important; }
+            .text-slate-500 { color: #64748b !important; }
+            .bg-white { background-color: #ffffff !important; }
+            .bg-slate-50 { background-color: #f8fafc !important; }
+            .bg-slate-100 { background-color: #f1f5f9 !important; }
+            .bg-emerald-600 { background-color: #059669 !important; }
+            .text-emerald-600 { color: #059669 !important; }
           `
           clonedDoc.head.appendChild(style)
 
-          // Nettoyage manuel des styles calculés problématiques
+          // Nettoyage manuel AGRESSIF des styles calculés problématiques
           const allElements = clonedDoc.getElementsByTagName('*')
           for (let i = 0; i < allElements.length; i++) {
             const el = allElements[i]
-            // Si l'élément a une couleur qui pourrait être oklch, on la force en inherit ou safe
+            const computedStyle = window.getComputedStyle(el)
+            
+            // Remplacer FORCÉMENT toutes les couleurs
+            el.style.color = '#1A1008'
+            el.style.backgroundColor = '#FFFFFF'
+            el.style.borderColor = '#E8D9C5'
+            
+            // Nettoyer les styles inline qui contiennent oklch/oklab
+            const inlineStyle = el.getAttribute('style')
+            if (inlineStyle && (inlineStyle.includes('oklch') || inlineStyle.includes('oklab'))) {
+              el.setAttribute('style', inlineStyle.replace(/oklch\([^)]+\)/g, '#1A1008').replace(/oklab\([^)]+\)/g, '#FFFFFF'))
+            }
+            
+            // Nettoyer les classes Tailwind problématiques
             if (el.classList.contains('text-zinc-500')) el.style.color = '#71717a'
             if (el.classList.contains('bg-white')) el.style.backgroundColor = '#ffffff'
             if (el.classList.contains('bg-emerald-600')) el.style.backgroundColor = '#059669'
+            if (el.classList.contains('bg-slate-50')) el.style.backgroundColor = '#f8fafc'
+            if (el.classList.contains('bg-slate-100')) el.style.backgroundColor = '#f1f5f9'
+            if (el.classList.contains('text-slate-900')) el.style.color = '#0f172a'
+            if (el.classList.contains('text-slate-600')) el.style.color = '#475569'
+          }
+          
+          // Nettoyer toutes les feuilles de style
+          const allStyles = clonedDoc.getElementsByTagName('style')
+          for (let i = 0; i < allStyles.length; i++) {
+            const styleContent = allStyles[i].innerHTML
+            if (styleContent.includes('oklch') || styleContent.includes('oklab')) {
+              allStyles[i].innerHTML = styleContent
+                .replace(/oklch\([^)]+\)/g, '#1A1008')
+                .replace(/oklab\([^)]+\)/g, '#FFFFFF')
+                .replace(/color:\s*[^;]+oklch[^;]+/g, 'color: #1A1008')
+                .replace(/background-color:\s*[^;]+oklch[^;]+/g, 'background-color: #FFFFFF')
+            }
           }
         }
       },

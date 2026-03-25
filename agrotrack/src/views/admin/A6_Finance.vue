@@ -241,6 +241,7 @@ const exportToPDF = async () => {
               print-color-adjust: exact !important;
               background-image: none !important;
             }
+            /* Remplacement global des couleurs oklch/oklab par des fallbacks safe */
             :root {
               --primary: #3D2B1F !important;
               --accent: #F2B705 !important;
@@ -252,11 +253,68 @@ const exportToPDF = async () => {
               --success: #2D6A4F !important;
               --warn: #E07B39 !important;
               --danger: #D62828 !important;
+              --vol: #E8813A !important;
+              --bet: #8B5E3C !important;
+              --pis: #1A6B8A !important;
             }
             #finance-report { background-color: #FDF6EC !important; padding: 20px !important; }
             .card { background-color: #FFFFFF !important; }
+            
+            /* Remplacer TOUTES les occurrences de oklch/oklab */
+            * { color: #1A1008 !important; }
+            * { background-color: #FFFFFF !important; }
+            * { border-color: #E8D9C5 !important; }
+            
+            /* Remplacements spécifiques pour les éléments importants */
+            .text-slate-900 { color: #0f172a !important; }
+            .text-slate-600 { color: #475569 !important; }
+            .text-slate-500 { color: #64748b !important; }
+            .bg-white { background-color: #ffffff !important; }
+            .bg-slate-50 { background-color: #f8fafc !important; }
+            .bg-slate-100 { background-color: #f1f5f9 !important; }
+            .bg-emerald-600 { background-color: #059669 !important; }
+            .text-emerald-600 { color: #059669 !important; }
           `
           clonedDoc.head.appendChild(style)
+
+          // Nettoyage manuel AGRESSIF des styles calculés problématiques
+          const allElements = clonedDoc.getElementsByTagName('*')
+          for (let i = 0; i < allElements.length; i++) {
+            const el = allElements[i]
+            
+            // Remplacer FORCÉMENT toutes les couleurs
+            el.style.color = '#1A1008'
+            el.style.backgroundColor = '#FFFFFF'
+            el.style.borderColor = '#E8D9C5'
+            
+            // Nettoyer les styles inline qui contiennent oklch/oklab
+            const inlineStyle = el.getAttribute('style')
+            if (inlineStyle && (inlineStyle.includes('oklch') || inlineStyle.includes('oklab'))) {
+              el.setAttribute('style', inlineStyle.replace(/oklch\([^)]+\)/g, '#1A1008').replace(/oklab\([^)]+\)/g, '#FFFFFF'))
+            }
+            
+            // Nettoyer les classes Tailwind problématiques
+            if (el.classList.contains('text-zinc-500')) el.style.color = '#71717a'
+            if (el.classList.contains('bg-white')) el.style.backgroundColor = '#ffffff'
+            if (el.classList.contains('bg-emerald-600')) el.style.backgroundColor = '#059669'
+            if (el.classList.contains('bg-slate-50')) el.style.backgroundColor = '#f8fafc'
+            if (el.classList.contains('bg-slate-100')) el.style.backgroundColor = '#f1f5f9'
+            if (el.classList.contains('text-slate-900')) el.style.color = '#0f172a'
+            if (el.classList.contains('text-slate-600')) el.style.color = '#475569'
+          }
+          
+          // Nettoyer toutes les feuilles de style
+          const allStyles = clonedDoc.getElementsByTagName('style')
+          for (let i = 0; i < allStyles.length; i++) {
+            const styleContent = allStyles[i].innerHTML
+            if (styleContent.includes('oklch') || styleContent.includes('oklab')) {
+              allStyles[i].innerHTML = styleContent
+                .replace(/oklch\([^)]+\)/g, '#1A1008')
+                .replace(/oklab\([^)]+\)/g, '#FFFFFF')
+                .replace(/color:\s*[^;]+oklch[^;]+/g, 'color: #1A1008')
+                .replace(/background-color:\s*[^;]+oklch[^;]+/g, 'background-color: #FFFFFF')
+            }
+          }
         }
       },
       jsPDF: { orientation: 'landscape', unit: 'mm', format: 'a4' }
