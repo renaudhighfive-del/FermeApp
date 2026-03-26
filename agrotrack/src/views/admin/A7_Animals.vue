@@ -667,9 +667,10 @@ const submitAddAnimal = async () => {
     
     if (!animalForm.farm) {
       throw new Error('Veuillez sélectionner une ferme')
-    
+    }
     if (!animalForm.campaign) {
-    
+       throw new Error('Veuillez sélectionner une campagne')
+    }
     const newAnimal = {
       idNumber: animalForm.idNumber,
       type: animalForm.type,
@@ -681,7 +682,7 @@ const submitAddAnimal = async () => {
       breed: animalForm.breed,
       notes: animalForm.notes
     }
-    
+  
     await admin.addAnimal(newAnimal)
     closeAddModal()
     // Reset page to 1 to see new animal
