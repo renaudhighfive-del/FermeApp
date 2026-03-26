@@ -14,7 +14,7 @@ const router = Router()
 router.use(requireAuth)
 
 // ── CRUD users — admin (et gerant pour la liste des agents) ──────
-router.get('/',    autoriser('admin', 'gerant'), listerUsers)   // GET    /api/users
+router.get('/',    autoriser('admin', 'gerant','agent'), listerUsers)   // GET    /api/users
 router.post('/',   autoriser('admin'), creerUser)     // POST   /api/users
 router.get('/:id', autoriser('admin'), obtenirUser)   // GET    /api/users/:id
 router.put('/:id', autoriser('admin'), modifierUser)  // PUT    /api/users/:id

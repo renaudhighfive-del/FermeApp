@@ -17,7 +17,7 @@ router.get('/', getAllEvents);
 
 // --- Routes Admin ---
 
-router.post('/',     autoriser('admin', 'gerant'), createEvent);
+router.post('/', autoriser('admin', 'gerant', 'agent'), createEvent);
 router.put('/:id', updateEvent);
 router.delete('/:id', autoriser('admin', 'gerant'), deleteEvent);
 

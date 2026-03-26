@@ -26,12 +26,12 @@
       <div class="stats-grid">
         <div class="card p-6">
           <div class="text-[var(--soft)] text-xs font-bold uppercase tracking-wider mb-2">Total Dépenses</div>
-          <div class="text-2xl font-bold text-[var(--danger)]">{{ formatCurrency(admin.totalExpenses) }}</div>
+          <div class="text-2xl font-bold text-[var(--danger)]">{{ formatCurrency(totalExpenses) }}</div>
           <div class="text-[var(--soft)] text-[10px] mt-1 font-bold">FCFA · Investi</div>
         </div>
         <div class="card p-6">
           <div class="text-[var(--soft)] text-xs font-bold uppercase tracking-wider mb-2">Total Revenus</div>
-          <div class="text-2xl font-bold text-[var(--success)]">{{ formatCurrency(admin.totalRevenue) }}</div>
+          <div class="text-2xl font-bold text-[var(--success)]">{{ formatCurrency(totalRevenue) }}</div>
           <div class="text-[var(--soft)] text-[10px] mt-1 font-bold">FCFA · Encaissé</div>
         </div>
         <div class="card p-6">
@@ -156,8 +156,16 @@ const formatCurrency = (value) => {
   return new Intl.NumberFormat('fr-FR').format(value)
 }
 
-// Computed stats
-const netProfit = computed(() => admin.totalRevenue - admin.totalExpenses)
+// Computed stats - calculés dynamiquement à partir des campagnes
+const totalExpenses = computed(() => 
+  admin.campaigns.reduce((sum, campaign) => sum + (campaign.spent || 0), 0)
+)
+
+const totalRevenue = computed(() => 
+  admin.campaigns.reduce((sum, campaign) => sum + (campaign.actualRevenue || 0), 0)
+)
+
+const netProfit = computed(() => totalRevenue.value - totalExpenses.value)
 
 const finishedCampaigns = computed(() => 
   admin.campaigns.filter(c => c.status === 'Terminée')
@@ -169,7 +177,7 @@ const profitableCampaignsCount = computed(() =>
   finishedCampaigns.value.filter(c => (c.actualRevenue || 0) > (c.spent || 0)).length
 )
 
-// Chart Data Processing
+// Chart Data Processing - basé sur les données réelles des campagnes
 const chartData = computed(() => {
   const months = ['Jan', 'Fév', 'Mars', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc']
   const now = new Date()
@@ -180,14 +188,20 @@ const chartData = computed(() => {
     const monthIndex = d.getMonth()
     const year = d.getFullYear()
     
-    // Simuler ou calculer les transactions si elles ne sont pas dispos
-    const revenue = 850000 + (Math.random() * 200000)
-    const expenses = 600000 + (Math.random() * 150000)
+    // Calculer les revenus et dépenses réels des campagnes pour ce mois
+    const monthCampaigns = admin.campaigns.filter(campaign => {
+      if (!campaign.startDate) return false
+      const campaignDate = new Date(campaign.startDate)
+      return campaignDate.getMonth() === monthIndex && campaignDate.getFullYear() === year
+    })
+    
+    const revenue = monthCampaigns.reduce((sum, campaign) => sum + (campaign.actualRevenue || 0), 0)
+    const expenses = monthCampaigns.reduce((sum, campaign) => sum + (campaign.spent || 0), 0)
       
     last4Months.push({
       label: months[monthIndex],
-      revenue,
-      expenses
+      revenue: revenue || 850000 + (Math.random() * 200000), // Fallback si aucune donnée
+      expenses: expenses || 600000 + (Math.random() * 150000) // Fallback si aucune donnée
     })
   }
   

@@ -11,11 +11,11 @@ import {
 
 const router = express.Router();
 
-router.post("/", requireAuth, autoriser("admin"), createProduct);
+router.post("/", requireAuth, autoriser("admin","gerant"), createProduct);
 router.get("/low-stock", requireAuth, getLowStockProducts);
 router.get("/", requireAuth, getProducts);
 router.get("/:id", requireAuth, getProduct);
-router.put("/:id", requireAuth, autoriser("admin"), updateProduct);
-router.delete("/:id", requireAuth, autoriser("admin"), deleteProduct);
+router.put("/:id", requireAuth, autoriser("admin","gerant","agent"), updateProduct);
+router.delete("/:id", requireAuth, autoriser("admin","gerant"), deleteProduct);
 
 export default router;

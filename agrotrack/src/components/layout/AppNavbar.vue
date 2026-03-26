@@ -1,5 +1,5 @@
 <template>
-  <nav class="sticky top-0 z-40 flex items-center justify-between h-16 px-4 transition-colors duration-300 border-b bg-white/80 backdrop-blur-md border-emerald-100 dark:bg-zinc-900/90 dark:border-zinc-800 lg:px-8">
+  <nav class="sticky top-0 z-40 flex items-center justify-between h-16 px-4 transition-colors duration-300 border-b bg-white/80 backdrop-blur-md border-[var(--accent)]  dark:bg-zinc-900/90 dark:border-zinc-800 lg:px-8">
     
     <div class="flex items-center gap-3 lg:gap-5">
       <button 
@@ -12,15 +12,15 @@
       </button>
 
       <div class="flex items-center gap-2.5 group cursor-pointer">
-        <div class="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 group-hover:scale-110 transition-transform">
-          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" class="text-emerald-600 dark:text-emerald-400">
+        <div class="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 group-hover:scale-110 transition-transform bg-[var(--text)]">
+          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" class="text-[var(--accent)]  dark:text-emerald-400">
             <path d="M12 2a9 9 0 0 1 9 9c0 4.97-4.03 9-9 9S3 15.97 3 11a9 9 0 0 1 9-9z"/>
             <path d="M12 6c-2.5 1-4 3.5-4 5.5 0 2.5 1.8 4.5 4 4.5s4-2 4-4.5c0-2-1.5-4.5-4-5.5z"/>
             <path d="M12 2v4M8.5 3.5l2 3M15.5 3.5l-2 3"/>
           </svg>
         </div>
         <span class="hidden font-extrabold tracking-tight text-zinc-800 dark:text-zinc-100 sm:inline text-lg">
-          Agro<span class="text-emerald-600 dark:text-emerald-400">Track</span>
+          Agro<span class="text-[var(--accent)]  dark:text-emerald-400">Track</span>
         </span>
       </div>
     </div>
@@ -51,12 +51,12 @@
       <div class="hidden h-8 w-[1px] bg-zinc-200 dark:bg-zinc-800 lg:block"></div>
 
       <div class="flex items-center gap-3 p-1.5 transition-all rounded-2xl cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 group" @click="$emit('openUserMenu')">
-        <div class="flex items-center justify-center w-9 h-9 font-bold transition-transform rounded-xl bg-emerald-600 text-emerald-50 group-hover:scale-95 text-sm shadow-sm">
+        <div class="flex items-center justify-center w-9 h-9 font-bold transition-transform rounded-xl bg-[var(--accent)]  text-emerald-50 group-hover:scale-95 text-sm shadow-sm">
           {{ initials }}
         </div>
         <div class="hidden text-left lg:block">
           <div class="text-sm font-bold leading-tight text-zinc-800 dark:text-zinc-100">{{ userName }}</div>
-          <div class="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">{{ roleLabel }}</div>
+          <div class="text-[11px] font-medium text-[var(--accent)]  dark:text-emerald-400 uppercase tracking-wider">{{ roleLabel }}</div>
         </div>
       </div>
 

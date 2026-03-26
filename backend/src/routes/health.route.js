@@ -11,7 +11,7 @@ import {
 
 const router = express.Router();
 
-router.post("/", requireAuth, autoriser("admin", "gerant"), createHealthRecord);
+router.post("/", requireAuth, createHealthRecord);
 router.get("/alerts", requireAuth, getAlerts);
 router.get("/upcoming-vaccinations", requireAuth, getUpcomingVaccinations);
 router.get("/", requireAuth, getHealthRecords);

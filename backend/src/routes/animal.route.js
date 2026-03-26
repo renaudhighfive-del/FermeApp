@@ -10,10 +10,10 @@ import {
 
 const router = express.Router();
 
-router.post("/", requireAuth, autoriser("admin", "gerant"), createAnimal);
+router.post("/", requireAuth, autoriser("admin", "gerant","agent"), createAnimal);
 router.get("/", requireAuth, getAnimals);
 router.get("/:id", requireAuth, getAnimal);
-router.put("/:id", requireAuth, updateAnimal);
+router.put("/:id", requireAuth, autoriser("admin", "gerant", "agent"), updateAnimal);
 router.delete("/:id", requireAuth, autoriser("admin"), deleteAnimal);
 
 export default router;

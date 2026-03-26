@@ -323,7 +323,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { userService } from '@/services/api'
+import { userService, farmService, campaignService } from '@/services/api'
 import { useAdminStore } from '@/stores/admin'
 import { useUiStore } from '@/stores/ui'
 
@@ -361,12 +361,9 @@ const fetchUsers = async () => {
 
 const fetchFarms = async () => {
   try {
-    if (admin.fetchFarms && typeof admin.fetchFarms === 'function') {
-      await admin.fetchFarms()
-      farms.value = admin.farms || []
-    } else {
-      console.warn('admin.fetchFarms is not available yet')
-    }
+    const response = await farmService.getAll()
+    farms.value = response.data.farms || response.data || []
+    console.log('Farms loaded:', farms.value)
   } catch (error) {
     console.error('Error fetching farms:', error)
   }
@@ -465,8 +462,14 @@ const submitUser = async () => {
     isSaving.value = true
     console.log('Données utilisateur envoyées:', newUser.value)
     
-    // Préparer les données pour l'envoi
-    const userData = { ...newUser.value }
+    // Préparer les données pour l'envoi - conversion propre du Vue Proxy
+    const userData = JSON.parse(JSON.stringify(newUser.value))
+    
+    // Nettoyer les données
+    userData.name = userData.name?.trim() || ''
+    userData.email = userData.email?.trim().toLowerCase() || ''
+    userData.password = userData.password || ''
+    userData.role = userData.role || 'agent'
     
     // Validations selon le rôle
     if (userData.role === 'gerant') {
@@ -493,14 +496,33 @@ const submitUser = async () => {
       userData.campaignsAssignees = []
     }
     
-    await userService.create(userData)
+    // Ajouter le statut actif par défaut
+    userData.actif = true
+    
+    console.log('Données finales envoyées à l\'API:', userData)
+    
+    const response = await userService.create(userData)
+    console.log('Réponse de l\'API:', response.data)
+    
     showNewModal.value = false
     newUser.value = { name: '', email: '', password: '', role: 'agent', farms: [], campaignsAssignees: [] }
     await fetchUsers()
     ui.success('Utilisateur invité avec succès')
   } catch (error) {
     console.error('Error:', error)
-    ui.error('Erreur: ' + (error.message || 'Impossible de créer l\'utilisateur'))
+    console.error('Error response:', error.response?.data)
+    
+    // Afficher un message d'erreur plus précis
+    let errorMessage = 'Impossible de créer l\'utilisateur'
+    if (error.response?.data?.message) {
+      errorMessage = error.response.data.message
+    } else if (error.response?.data?.error) {
+      errorMessage = error.response.data.error
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+    
+    ui.error('Erreur: ' + errorMessage)
   } finally {
     isSaving.value = false
   }
@@ -517,12 +539,9 @@ const deactivateUser = async (userId) => {
 
 const fetchCampaigns = async () => {
   try {
-    if (admin.fetchCampaigns && typeof admin.fetchCampaigns === 'function') {
-      await admin.fetchCampaigns({ limit: 100 })
-      campaigns.value = admin.campaigns || []
-    } else {
-      console.warn('admin.fetchCampaigns is not available yet')
-    }
+    const response = await campaignService.getAll()
+    campaigns.value = response.data.campaigns || response.data || []
+    console.log('Campaigns loaded:', campaigns.value)
   } catch (error) {
     console.error('Error fetching campaigns:', error)
   }

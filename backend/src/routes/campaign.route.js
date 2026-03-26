@@ -15,7 +15,7 @@ router.post("/", requireAuth, autoriser("admin", "gerant"), createCampaign);
 router.get("/", requireAuth, getCampaigns);
 router.get("/:id/stats", requireAuth, getCampaignStats);
 router.get("/:id", requireAuth, getCampaign);
-router.put("/:id", requireAuth, autoriser("admin", "gerant"), updateCampaign);
+router.put("/:id", requireAuth, autoriser("admin", "gerant", "agent"), updateCampaign);
 router.delete("/:id", requireAuth, autoriser("admin", "gerant"), deleteCampaign);
 
 export default router;
