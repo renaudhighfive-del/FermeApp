@@ -5,10 +5,11 @@
       :class="{ 'active': isActive }" 
       @click="navigate"
     >
-      <div class="w-5 h-5 flex items-center justify-center flex-shrink-0">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" v-html="icons[icon] || icons['grid']"></svg>
+      <div class="item-icon-wrapper">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" v-html="icons[icon] || icons['grid']"></svg>
       </div>
-      <span class="truncate">{{ label }}</span>
+      <span class="item-label">{{ label }}</span>
+      <div class="active-indicator"></div>
     </div>
   </RouterLink>
 </template>
@@ -41,6 +42,86 @@ const icons = {
 </script>
 
 <style scoped>
-/* Utilise les styles globaux de main.css */
-</style>
+/* Sidebar Item - Digital Twin Style */
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-sm);
+    padding: var(--gap-sm) var(--gap-md);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition-base);
+    position: relative;
+    overflow: hidden;
+    color: var(--text-secondary);
+    background: transparent;
+    border: var(--border-thin) solid transparent;
+}
 
+.sidebar-item:hover {
+    background: var(--glass-bg);
+    border-color: var(--glass-border);
+    color: var(--text-primary);
+    transform: translateX(4px);
+}
+
+.sidebar-item.active {
+    background: var(--primary-light);
+    color: var(--primary);
+    border-color: var(--primary);
+    box-shadow: var(--glow-primary);
+}
+
+/* Icon Wrapper */
+.item-icon-wrapper {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+    transition: var(--transition-base);
+}
+
+.sidebar-item:hover .item-icon-wrapper {
+    background: rgba(var(--primary-rgb, 10, 77, 60), 0.1);
+}
+
+.sidebar-item.active .item-icon-wrapper {
+    background: var(--primary);
+    color: var(--text-inverse);
+}
+
+/* Item Label */
+.item-label {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+}
+
+.sidebar-item.active .item-label {
+    font-weight: 600;
+}
+
+/* Active Indicator */
+.active-indicator {
+    width: 4px;
+    height: 20px;
+    background: var(--accent);
+    border-radius: var(--radius-full);
+    opacity: 0;
+    transform: scaleY(0);
+    transition: var(--transition-base);
+}
+
+.sidebar-item.active .active-indicator {
+    opacity: 1;
+    transform: scaleY(1);
+    box-shadow: 0 0 10px var(--accent);
+}
+</style>

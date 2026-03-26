@@ -13,10 +13,10 @@ const router = Router();
 router.use(requireAuth);
 
 // --- Routes Admin ---
-router.get('/',      autoriser('admin'), getAllEvents);
-router.post('/',     autoriser('admin'), createEvent);
-router.put('/:id',   autoriser('admin'), updateEvent);
-router.delete('/:id', autoriser('admin'), deleteEvent);
+router.get('/',   getAllEvents);
+router.post('/',     autoriser('admin', 'gerant'), createEvent);
+router.put('/:id',   autoriser('admin', 'gerant'), updateEvent);
+router.delete('/:id', autoriser('admin', 'gerant'), deleteEvent);
 
 // --- Routes Gérant (peut aussi voir/créer pour ses campagnes) ---
 router.get('/gerant', autoriser('gerant'), getAllEvents);
