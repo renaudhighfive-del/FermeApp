@@ -264,6 +264,11 @@ const resolveAlert = async (alertId) => {
   try {
     await admin.resolveAlert(alertId)
     ui.success('Alerte marquée comme résolue')
+    // Rafraîchir les alertes pour s'assurer que la liste est à jour
+    const farmId = sessionStorage.getItem('currentFarm')
+    if (farmId) {
+      await admin.fetchAlerts({ farm: farmId })
+    }
   } catch (error) {
     console.error('Erreur:', error)
     ui.error('Erreur lors de la résolution de l\'alerte')
@@ -284,6 +289,11 @@ const resolveAllAlerts = async () => {
         await admin.resolveAlert(alert._id)
       }
       ui.success('Toutes les alertes ont été résolues')
+      // Rafraîchir les alertes pour s'assurer que la liste est à jour
+      const farmId = sessionStorage.getItem('currentFarm')
+      if (farmId) {
+        await admin.fetchAlerts({ farm: farmId })
+      }
     } catch (error) {
       console.error('Erreur:', error)
       ui.error('Erreur lors de la résolution des alertes')

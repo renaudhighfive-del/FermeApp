@@ -289,8 +289,22 @@ export const useAdminStore = defineStore("admin", () => {
 
   const resolveAlert = async (id) => {
     try {
-      // Update the health record or mark as resolved
-      await healthService.update(id, { status: "Complété" });
+      // Find the alert to determine its type
+      const alert = alerts.value.find((a) => a._id === id);
+      
+      if (!alert) {
+        throw new Error('Alerte non trouvée');
+      }
+
+      if (alert.type === "health_status") {
+        // For sick animals, update the animal's health status
+        await animalService.update(id, { healthStatus: "Sain" });
+      } else if (alert.type === "health_record") {
+        // For health records, update the record status
+        await healthService.update(id, { status: "Complété" });
+      }
+      
+      // Remove from local alerts array
       alerts.value = alerts.value.filter((a) => a._id !== id);
     } catch (err) {
       error.value = err.message;
