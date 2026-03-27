@@ -243,6 +243,44 @@
             <label class="block text-sm font-semibold text-gray-700 mb-1">Notes</label>
             <p class="text-gray-900 bg-gray-50 p-3 rounded">{{ selectedAnimal.notes }}</p>
           </div>
+
+          <!-- QR Code Section -->
+          <div class="col-span-2">
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Code QR de l'Animal</label>
+            <div class="flex items-center justify-center p-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+              <div class="text-center">
+                <div class="mb-4">
+                  <canvas 
+                    ref="qrCanvas" 
+                    class="mx-auto border-2 border-white shadow-lg rounded"
+                    :width="200" 
+                    :height="200"
+                  ></canvas>
+                </div>
+                <p class="text-xs text-gray-600 mb-2">ID: {{ selectedAnimal.idNumber }}</p>
+                <div class="flex gap-2 justify-center">
+                  <button 
+                    @click="downloadQRCode"
+                    class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg flex items-center gap-1"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Télécharger
+                  </button>
+                  <button 
+                    @click="printQRCode"
+                    class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg flex items-center gap-1"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    Imprimer
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="flex justify-end gap-2 pt-6 border-t mt-6">
@@ -522,10 +560,11 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted, nextTick, watch } from 'vue'
 import { useAdminStore } from '@/stores/admin'
 import { useUiStore } from '@/stores/ui'
 import { farmService } from '@/services/api'
+import QRCode from 'qrcode'
 
 const admin = useAdminStore()
 const ui = useUiStore()
@@ -537,6 +576,7 @@ const isSubmitting = ref(false)
 const currentPage = ref(1)
 const itemsPerPage = 20
 const farms = ref([])
+const qrCanvas = ref(null)
 
 // Form state for add
 const animalForm = reactive({
@@ -764,6 +804,181 @@ const deleteAnimal = async (animalId) => {
     }
   }
 }
+
+// QR Code Methods
+const generateQRCode = async (animal) => {
+  if (!animal || !qrCanvas.value) return
+  
+  try {
+    // Créer les données uniques pour le QR code
+    const qrData = {
+      id: animal.idNumber,
+      type: animal.type,
+      farm: animal.farm?.name || 'N/A',
+      campaign: animal.campaign?.name || 'N/A',
+      weight: animal.weight || 'N/A',
+      healthStatus: animal.healthStatus,
+      dateOfBirth: animal.dateOfBirth || 'N/A',
+      timestamp: new Date().toISOString(),
+      system: 'AgroTrack'
+    }
+    
+    // Convertir en string JSON pour le QR code
+    const qrString = JSON.stringify(qrData)
+    
+    // Générer le QR code sur le canvas
+    await QRCode.toCanvas(qrCanvas.value, qrString, {
+      width: 200,
+      height: 200,
+      margin: 2,
+      color: {
+        dark: '#1f2937',    // Couleur foncée (gris)
+        light: '#ffffff'    // Couleur claire (blanc)
+      },
+      errorCorrectionLevel: 'M' // Medium error correction
+    })
+    
+  } catch (error) {
+    console.error('Erreur lors de la génération du QR code:', error)
+    ui.error('Erreur lors de la génération du QR code')
+  }
+}
+
+const downloadQRCode = async () => {
+  if (!qrCanvas.value || !selectedAnimal.value) return
+  
+  try {
+    // Convertir le canvas en blob
+    const blob = await new Promise(resolve => qrCanvas.value.toBlob(resolve))
+    
+    // Créer un URL pour le téléchargement
+    const url = URL.createObjectURL(blob)
+    
+    // Créer un lien temporaire pour le téléchargement
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `QR_Animal_${selectedAnimal.value.idNumber}.png`
+    
+    // Déclencher le téléchargement
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    
+    // Nettoyer l'URL
+    URL.revokeObjectURL(url)
+    
+    ui.success('Code QR téléchargé avec succès')
+  } catch (error) {
+    console.error('Erreur lors du téléchargement du QR code:', error)
+    ui.error('Erreur lors du téléchargement du QR code')
+  }
+}
+
+const printQRCode = () => {
+  if (!qrCanvas.value || !selectedAnimal.value) return
+  
+  try {
+    // Créer une nouvelle fenêtre pour l'impression
+    const printWindow = window.open('', '_blank')
+    
+    if (!printWindow) {
+      ui.error('Impossible d\'ouvrir la fenêtre d\'impression. Veuillez autoriser les pop-ups.')
+      return
+    }
+    
+    // Créer le contenu HTML pour l'impression
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>QR Code Animal - ${selectedAnimal.value.idNumber}</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            margin: 0;
+          }
+          .header {
+            margin-bottom: 20px;
+          }
+          .header h2 {
+            margin: 0;
+            color: #1f2937;
+          }
+          .header p {
+            margin: 5px 0;
+            color: #6b7280;
+          }
+          .qr-container {
+            display: inline-block;
+            padding: 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+          }
+          .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #9ca3af;
+          }
+          @media print {
+            body { margin: 0; }
+            .qr-container { page-break-inside: avoid; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h2>AgroTrack - Code QR Animal</h2>
+          <p><strong>ID:</strong> ${selectedAnimal.value.idNumber}</p>
+          <p><strong>Type:</strong> ${selectedAnimal.value.type}</p>
+          <p><strong>Ferme:</strong> ${selectedAnimal.value.farm?.name || 'N/A'}</p>
+          <p><strong>Campagne:</strong> ${selectedAnimal.value.campaign?.name || 'N/A'}</p>
+          <p><strong>Date:</strong> ${new Date().toLocaleDateString('fr-FR')}</p>
+        </div>
+        <div class="qr-container">
+          <img src="${qrCanvas.value.toDataURL()}" alt="QR Code Animal" style="max-width: 200px; height: auto;">
+        </div>
+        <div class="footer">
+          <p>Généré par AgroTrack - Système de Gestion Agricole</p>
+        </div>
+      </body>
+      </html>
+    `
+    
+    // Écrire le contenu dans la nouvelle fenêtre
+    printWindow.document.write(printContent)
+    printWindow.document.close()
+    
+    // Attendre que le contenu soit chargé puis imprimer
+    printWindow.onload = () => {
+      printWindow.print()
+      printWindow.close()
+    }
+    
+  } catch (error) {
+    console.error('Erreur lors de l\'impression du QR code:', error)
+    ui.error('Erreur lors de l\'impression du QR code')
+  }
+}
+
+// Watcher pour générer le QR code quand l'animal sélectionné change
+watch(showDetailsModal, async (newValue) => {
+  if (newValue && selectedAnimal.value) {
+    // Attendre le prochain tick pour que le canvas soit disponible
+    await nextTick()
+    await generateQRCode(selectedAnimal.value)
+  }
+})
+
+// Watcher pour régénérer le QR code si l'animal sélectionné change
+watch(selectedAnimal, async (newValue) => {
+  if (newValue && showDetailsModal.value) {
+    await nextTick()
+    await generateQRCode(newValue)
+  }
+})
 
 // Init
 onMounted(async () => {
