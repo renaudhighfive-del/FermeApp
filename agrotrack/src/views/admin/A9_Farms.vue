@@ -7,7 +7,7 @@
         <p class="text-[var(--soft)] mt-1">Gérez vos exploitations agricoles et leurs personnels</p>
       </div>
       <div class="flex gap-3 w-full lg:w-auto ">
-        <button style="background-color: var(--primary);" 
+        <button 
           @click="openCreateModal"
           class="btn flex items-center gap-2 w-full lg:w-auto "
         >
