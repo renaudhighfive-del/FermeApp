@@ -71,7 +71,7 @@ const routes = [
   {
     path: '/gerant',
     component: () => import('@/components/layout/GerantLayout.vue'),
-    meta: { requiresAuth: true, roles: ['admin', 'gerant'] },
+    meta: { requiresAuth: true, roles: ['gerant'] },
     children: [
       { path: 'dashboard',      component: GerantDashboard  },
       { path: 'campaigns',      component: GerantCampaigns  },
@@ -91,7 +91,7 @@ const routes = [
   {
     path: '/agent',
     component: () => import('@/components/layout/AgentLayout.vue'),
-    meta: { requiresAuth: true, roles: ['admin', 'gerant', 'agent'] },
+    meta: { requiresAuth: true, roles: ['agent'] },
     children: [
       { path: 'dashboard',   component: AgentDashboard },
       { path: 'tasks',       component: AgentTasks     },
