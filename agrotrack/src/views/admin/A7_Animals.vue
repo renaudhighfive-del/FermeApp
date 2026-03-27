@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-6 p-6">
+  <div class="space-y-6 p-6" id='pdf-content'>
     <!-- Header -->
     <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
       <div>
@@ -9,7 +9,7 @@
       <div class="flex gap-3 w-full lg:w-auto">
         <button 
           @click="showAddModal = true"
-          class="btn btn-primary flex items-center gap-2 w-full lg:w-auto"
+          class="btn  flex items-center gap-2 w-full lg:w-auto text-[var(--accent)]"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -647,6 +647,8 @@ import { useAdminStore } from '@/stores/admin'
 import { useUiStore } from '@/stores/ui'
 import { farmService } from '@/services/api'
 import QRCode from 'qrcode'
+import html2pdf from 'html2pdf.js'
+
 
 const admin = useAdminStore()
 const ui = useUiStore()
@@ -659,7 +661,7 @@ const currentPage = ref(1)
 const itemsPerPage = 20
 const farms = ref([])
 const qrCanvas = ref(null)
-
+const isExportingPDF = ref(false)
 // Form state for add
 const animalForm = reactive({
   idNumber: '',
@@ -782,7 +784,118 @@ const resetAnimalForm = () => {
   animalForm.breed = ''
   animalForm.notes = ''
 }
+const exportToPDF = () => {
+  isExportingPDF.value = true
+  const element = document.getElementById('pdf-content')
+  
+  // Clone element to avoid issues with fixed/sticky headers
+  const opt = {
+    margin: 10,
+    filename: `Gestion Animal_${new Date().toISOString().split('T')[0]}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { 
+      scale: 2, 
+      useCORS: true, 
+      logging: false,
+      onclone: (clonedDoc) => {
+        // Force light mode
+        clonedDoc.documentElement.classList.remove('dark')
+        clonedDoc.documentElement.classList.add('light')
+        
+        const style = clonedDoc.createElement('style')
+        style.innerHTML = `
+          * { 
+            color-scheme: light !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            background-image: none !important;
+          }
+          /* Remplacement global des couleurs oklch/oklab par des fallbacks safe */
+          :root {
+            --primary: #3D2B1F !important;
+            --accent: #F2B705 !important;
+            --bg: #FDF6EC !important;
+            --card: #FFFFFF !important;
+            --text: #1A1008 !important;
+            --soft: #7A6652 !important;
+            --border: #E8D9C5 !important;
+            --success: #2D6A4F !important;
+            --warn: #E07B39 !important;
+            --danger: #D62828 !important;
+            --vol: #E8813A !important;
+            --bet: #8B5E3C !important;
+            --pis: #1A6B8A !important;
+          }
+          #reports-page { background-color: #FDF6EC !important; padding: 20px !important; }
+          .card { background-color: #FFFFFF !important; }
+          
+          /* Remplacer TOUTES les occurrences de oklch/oklab */
+          * { color: #1A1008 !important; }
+          * { background-color: #FFFFFF !important; }
+          * { border-color: #E8D9C5 !important; }
+          
+          /* Remplacements spécifiques pour les éléments importants */
+          .text-slate-900 { color: #0f172a !important; }
+          .text-slate-600 { color: #475569 !important; }
+          .text-slate-500 { color: #64748b !important; }
+          .bg-white { background-color: #ffffff !important; }
+          .bg-slate-50 { background-color: #f8fafc !important; }
+          .bg-slate-100 { background-color: #f1f5f9 !important; }
+          .bg-emerald-600 { background-color: #059669 !important; }
+          .text-emerald-600 { color: #059669 !important; }
+        `
+        clonedDoc.head.appendChild(style)
 
+        // Nettoyage manuel AGRESSIF des styles calculés problématiques
+        const allElements = clonedDoc.getElementsByTagName('*')
+        for (let i = 0; i < allElements.length; i++) {
+          const el = allElements[i]
+          
+          // Remplacer FORCÉMENT toutes les couleurs
+          el.style.color = '#1A1008'
+          el.style.backgroundColor = '#FFFFFF'
+          el.style.borderColor = '#E8D9C5'
+          
+          // Nettoyer les styles inline qui contiennent oklch/oklab
+          const inlineStyle = el.getAttribute('style')
+          if (inlineStyle && (inlineStyle.includes('oklch') || inlineStyle.includes('oklab'))) {
+            el.setAttribute('style', inlineStyle.replace(/oklch\([^)]+\)/g, '#1A1008').replace(/oklab\([^)]+\)/g, '#FFFFFF'))
+          }
+          
+          // Nettoyer les classes Tailwind problématiques
+          if (el.classList.contains('text-zinc-500')) el.style.color = '#71717a'
+          if (el.classList.contains('bg-white')) el.style.backgroundColor = '#ffffff'
+          if (el.classList.contains('bg-emerald-600')) el.style.backgroundColor = '#059669'
+          if (el.classList.contains('bg-slate-50')) el.style.backgroundColor = '#f8fafc'
+          if (el.classList.contains('bg-slate-100')) el.style.backgroundColor = '#f1f5f9'
+          if (el.classList.contains('text-slate-900')) el.style.color = '#0f172a'
+          if (el.classList.contains('text-slate-600')) el.style.color = '#475569'
+        }
+        
+        // Nettoyer toutes les feuilles de style
+        const allStyles = clonedDoc.getElementsByTagName('style')
+        for (let i = 0; i < allStyles.length; i++) {
+          const styleContent = allStyles[i].innerHTML
+          if (styleContent.includes('oklch') || styleContent.includes('oklab')) {
+            allStyles[i].innerHTML = styleContent
+              .replace(/oklch\([^)]+\)/g, '#1A1008')
+              .replace(/oklab\([^)]+\)/g, '#FFFFFF')
+              .replace(/color:\s*[^;]+oklch[^;]+/g, 'color: #1A1008')
+              .replace(/background-color:\s*[^;]+oklch[^;]+/g, 'background-color: #FFFFFF')
+          }
+        }
+      }
+    },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+  }
+
+  html2pdf().set(opt).from(element).save().then(() => {
+    isExportingPDF.value = false
+  }).catch(err => {
+    console.error('PDF Export Error:', err)
+    isExportingPDF.value = false
+  })
+}
 const submitAddAnimal = async () => {
   try {
     isSubmitting.value = true
