@@ -1,45 +1,119 @@
 <template>
   <div class="space-y-6 p-6">
     <!-- Header -->
-    <div class="flex justify-between items-center">
+    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
       <div>
-        <h1 class="text-3xl font-bold">Gestion Animaux</h1>
-        <p class="text-slate-600">{{ totalAnimals }} animaux dans {{ activeCampaigns.length }} campagne(s) active(s)</p>
+        <h1 class="text-3xl font-bold text-[var(--text)]">Gestion Animaux</h1>
+        <p class="text-[var(--soft)] mt-1">{{ totalAnimals }} animaux dans {{ activeCampaigns.length }} campagne(s) active(s)</p>
       </div>
-      <button 
-        @click="showAddModal = true"
-        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg flex items-center gap-2"
-      >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
-        Ajouter animal
-      </button>
+      <div class="flex gap-3 w-full lg:w-auto">
+        <button 
+          @click="showAddModal = true"
+          class="btn btn-primary flex items-center gap-2 w-full lg:w-auto"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          <span>Ajouter Animal</span>
+        </button>
+        <button 
+          @click="exportToPDF"
+          class="btn btn-outline flex items-center gap-2 w-full lg:w-auto"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+          </svg>
+          <span>Exporter PDF</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="stats-grid">
+      <div class="card p-6">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="text-[var(--soft)] text-xs font-bold uppercase tracking-wider">Total Animaux</div>
+            <div class="text-3xl font-bold text-[var(--text)]">{{ totalAnimals }}</div>
+            <div class="text-[var(--soft)] text-[10px] mt-1 font-bold">tous types</div>
+          </div>
+        </div>
+      </div>
+      <div class="card p-6">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+          </div>
+          <div>
+            <div class="text-[var(--soft)] text-xs font-bold uppercase tracking-wider">Campagnes Actives</div>
+            <div class="text-3xl font-bold text-[var(--text)]">{{ activeCampaigns.length }}</div>
+            <div class="text-[var(--soft)] text-[10px] mt-1 font-bold">en cours</div>
+          </div>
+        </div>
+      </div>
+      <div class="card p-6">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="text-[var(--soft)] text-xs font-bold uppercase tracking-wider">Alertes Santé</div>
+            <div class="text-3xl font-bold text-[var(--danger)]">{{ admin.animals.filter(a => a.healthStatus === 'Malade' || a.healthStatus === 'Suspect').length }}</div>
+            <div class="text-[var(--soft)] text-[10px] mt-1 font-bold">nécessitent attention</div>
+          </div>
+        </div>
+      </div>
+      <div class="card p-6">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="text-[var(--soft)] text-xs font-bold uppercase tracking-wider">Vaccination</div>
+            <div class="text-3xl font-bold text-[var(--text)]">{{ Math.round((admin.animals.reduce((sum, a) => sum + (a.vaccinations?.length || 0), 0) / (admin.animals.length * 4)) * 100) }}%</div>
+            <div class="text-[var(--soft)] text-[10px] mt-1 font-bold">couverture moyenne</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Filters -->
-    <div class="bg-white p-4 rounded-lg shadow space-y-3">
-      <div class="grid grid-cols-4 gap-4">
-        <div>
+    <div class="card p-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div class="search-wrap">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
           <input 
             v-model="filters.search" 
             placeholder="Rechercher par ID, lot..." 
-            class="w-full px-3 py-2 border rounded"
+            class="search-input"
           />
         </div>
-        <select v-model="filters.type" class="px-3 py-2 border rounded">
+        <select v-model="filters.type" class="filter-select">
           <option value="">Tous départements</option>
           <option value="Volaille">Volaille</option>
           <option value="Bétail">Bétail</option>
           <option value="Pisciculture">Pisciculture</option>
         </select>
-        <select v-model="filters.campaign" class="px-3 py-2 border rounded">
+        <select v-model="filters.campaign" class="filter-select">
           <option value="">Toutes campagnes</option>
           <option v-for="campaign in campaigns" :key="campaign._id" :value="campaign._id">
             {{ campaign.name }}
           </option>
         </select>
-        <select v-model="filters.healthStatus" class="px-3 py-2 border rounded">
+        <select v-model="filters.healthStatus" class="filter-select">
           <option value="">Tous statuts santé</option>
           <option value="Sain">Sain</option>
           <option value="Malade">Malade</option>
@@ -47,12 +121,20 @@
           <option value="Décédé">Décédé</option>
         </select>
       </div>
-      <button 
-        @click="resetFilters"
-        class="text-blue-600 hover:text-blue-800 text-sm font-medium"
-      >
-        Réinitialiser filtres
-      </button>
+      <div class="flex items-center justify-between">
+        <button 
+          @click="resetFilters"
+          class="text-[var(--primary)] hover:text-[var(--text)] text-sm font-medium flex items-center gap-2 transition-colors"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          Réinitialiser filtres
+        </button>
+        <div class="text-[var(--soft)] text-sm">
+          {{ filteredAnimals.length }} résultat(s)
+        </div>
+      </div>
     </div>
 
     <!-- Loading State -->
@@ -1000,4 +1082,209 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style scoped>
+/* Correction des modaux pour éviter les conflits avec le CSS global */
+
+/* Overlay des modaux */
+.fixed.inset-0 {
+  z-index: 9999 !important;
+}
+
+/* Conteneur des modaux */
+.fixed > div {
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+}
+
+/* Espacement des modaux */
+.bg-white.rounded-lg.shadow-lg {
+  padding: 2.5rem !important; /* 40px */
+  margin: 1rem !important;
+  border-radius: 0.75rem !important; /* 12px au lieu de 16px */
+}
+
+.bg-white.rounded-lg.shadow-lg.p-8 {
+  padding: 2.5rem !important; /* 40px */
+}
+
+/* Espacement entre les éléments */
+.space-y-4 > * + * {
+  margin-top: 1rem !important; /* 16px */
+}
+
+.space-y-6 > * + * {
+  margin-top: 1.5rem !important; /* 24px */
+}
+
+/* Champs de formulaire */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+select,
+textarea {
+  padding: 0.75rem 1rem !important; /* 12px 16px */
+  border-radius: 0.75rem !important; /* 12px */
+  border: 1px solid var(--border) !important;
+  background: var(--card) !important;
+  color: var(--text) !important;
+  font-size: 0.875rem !important; /* 14px */
+  transition: all 0.2s ease !important;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+select:focus,
+textarea:focus {
+  outline: none !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(61, 43, 31, 0.1) !important;
+}
+
+input[type="text"]:disabled,
+input[type="number"]:disabled,
+select:disabled {
+  background: var(--bg) !important;
+  color: var(--soft) !important;
+  cursor: not-allowed !important;
+}
+
+/* Labels */
+label {
+  display: block !important;
+  font-size: 0.875rem !important; /* 14px */
+  font-weight: 500 !important;
+  color: var(--text) !important;
+  margin-bottom: 0.5rem !important; /* 8px */
+}
+
+/* Boutons */
+button {
+  border-radius: 0.75rem !important; /* 12px au lieu de 16px */
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Bouton principal (submit) */
+button[type="submit"] {
+  background: var(--primary) !important;
+  color: white !important;
+  border: none !important;
+  padding: 0.75rem 1.5rem !important; /* 12px 24px */
+}
+
+button[type="submit"]:hover {
+  background: color-mix(in srgb, var(--primary) 90%, black) !important;
+  transform: translateY(-1px) !important;
+}
+
+button[type="submit"]:disabled {
+  background: #9ca3af !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+/* Bouton secondaire */
+button[type="button"] {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  padding: 0.75rem 1.5rem !important; /* 12px 24px */
+}
+
+button[type="button"]:hover {
+  background: var(--border) !important;
+}
+
+/* Boutons action (table) */
+button:not([type]) {
+  padding: 0.5rem 1rem !important; /* 8px 16px */
+  border-radius: 0.5rem !important; /* 8px */
+  font-size: 0.8125rem !important; /* 13px */
+  background: transparent !important;
+  border: none !important;
+}
+
+button:not([type]):hover {
+  transform: translateY(-1px) !important;
+}
+
+/* Boutons spécifiques dans les modaux */
+.px-3.py-1.bg-blue-600,
+.px-3.py-1.bg-green-600 {
+  padding: 0.5rem 0.75rem !important;
+  border-radius: 0.5rem !important;
+  font-size: 0.8125rem !important;
+}
+
+.px-3.py-1.bg-blue-600:hover {
+  background: color-mix(in srgb, #2563eb 90%, black) !important;
+}
+
+.px-3.py-1.bg-green-600:hover {
+  background: color-mix(in srgb, #16a34a 90%, black) !important;
+}
+
+/* Header des modaux */
+.flex.justify-between.items-center.mb-6 {
+  margin-bottom: 1.5rem !important; /* 24px */
+}
+
+/* Footer des modaux */
+.flex.justify-end.gap-2.pt-6 {
+  padding-top: 1.5rem !important; /* 24px */
+  margin-top: 1.5rem !important; /* 24px */
+  border-top: 1px solid var(--border) !important;
+}
+
+/* Grid des formulaires */
+.grid.grid-cols-2.gap-4 {
+  gap: 1rem !important; /* 16px */
+}
+
+/* Sections des modaux */
+.grid.grid-cols-2.gap-6 {
+  gap: 1.5rem !important; /* 24px */
+}
+
+/* QR Code Section */
+.bg-gray-50.p-6.rounded-lg {
+  padding: 1.5rem !important; /* 24px */
+  border-radius: 0.75rem !important; /* 12px */
+  background: var(--bg) !important;
+  border: 2px dashed var(--border) !important;
+}
+
+/* Canvas QR Code */
+canvas {
+  border: 2px solid white !important;
+  box-shadow: var(--shadow) !important;
+  border-radius: 0.5rem !important;
+}
+
+/* Badges de statut */
+.px-3.py-1.rounded-full {
+  padding: 0.5rem 0.75rem !important; /* 8px 12px */
+  font-size: 0.75rem !important; /* 12px */
+  border-radius: 9999px !important;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .bg-white.rounded-lg.shadow-lg {
+    margin: 0.5rem !important;
+    padding: 1.5rem !important; /* 24px */
+  }
+  
+  button {
+    padding: 0.625rem 1rem !important; /* 10px 16px */
+    font-size: 0.8125rem !important; /* 13px */
+  }
+  
+  .grid.grid-cols-2 {
+    grid-template-columns: 1fr !important;
+  }
+}
+</style>
 
