@@ -53,57 +53,108 @@
     </div>
 
     <!-- Header -->
-    <div class="flex justify-between items-center">
+    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
       <div>
-        <h1 class="text-3xl font-bold">Gestion Stock Global</h1>
-        <p class="text-slate-600">{{ products.length }} produit(s) - {{ stocksAlerts.length }} alerte(s)</p>
+        <h1 class="text-3xl font-bold text-[var(--text)]">Gestion Stock Global</h1>
+        <p class="text-[var(--soft)] mt-1">{{ products.length }} produit(s) - {{ stocksAlerts.length }} alerte(s)</p>
       </div>
-      <button 
-        @click="showAddModal = true"
-        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg flex items-center gap-2"
-      >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
-        Ajouter produit
-      </button>
+      <div class="flex gap-3 w-full lg:w-auto">
+        <button 
+          @click="showAddModal = true"
+          class="btn btn-primary flex items-center gap-2 w-full lg:w-auto"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          <span>Ajouter Produit</span>
+        </button>
+        <button 
+          @click="exportToPDF"
+          class="btn btn-outline flex items-center gap-2 w-full lg:w-auto"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+          </svg>
+          <span>Exporter PDF</span>
+        </button>
+      </div>
     </div>
 
     <!-- KPIs -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <div class="bg-white p-6 rounded-lg shadow">
-        <div class="text-sm text-gray-600 mb-2">Stock total</div>
-        <div class="text-3xl font-bold">{{ products.length }}</div>
-        <div class="text-xs text-gray-500">références produits</div>
+    <div class="stats-grid">
+      <div class="card p-6">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4M5 7l8 4m0 0l-8-4m8 4v10a2 2 0 0 0 2h-4a2 2 0 0 0-2-2v-10a2 2 0 0 0-2-2h4a2 2 0 0 0 2 2z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="text-[var(--soft)] text-xs font-bold uppercase tracking-wider">Total Animaux</div>
+            <div class="text-3xl font-bold text-[var(--text)]">{{ products.length }}</div>
+            <div class="text-[var(--soft)] text-[10px] mt-1 font-bold">références produits</div>
+          </div>
+        </div>
       </div>
-      <div class="bg-white p-6 rounded-lg shadow">
-        <div class="text-sm text-gray-600 mb-2">Alertes stock faible</div>
-        <div class="text-3xl font-bold text-red-600">{{ stocksAlerts.length }}</div>
-        <div class="text-xs text-gray-500">produits sous seuil</div>
+      <div class="card p-6">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a2 2 0 0 0 2-2h-4a2 2 0 0 0-2 2v-4a2 2 0 0 0-2-2h4a2 2 0 0 0 2 2z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="text-[var(--soft)] text-xs font-bold uppercase tracking-wider">Campagnes Actives</div>
+            <div class="text-3xl font-bold text-[var(--text)]">{{ categories.length }}</div>
+            <div class="text-[var(--soft)] text-[10px] mt-1 font-bold">en cours</div>
+          </div>
+        </div>
       </div>
-      <div class="bg-white p-6 rounded-lg shadow">
-        <div class="text-sm text-gray-600 mb-2">Valeur totale</div>
-        <div class="text-3xl font-bold">{{ (totalStockValue / 1000000).toFixed(1) }}M</div>
-        <div class="text-xs text-gray-500">FCFA</div>
+      <div class="card p-6">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="text-[var(--soft)] text-xs font-bold uppercase tracking-wider">Taux de Mortalité</div>
+            <div class="text-3xl font-bold text-[var(--danger)]">{{ stocksAlerts.length }}</div>
+            <div class="text-[var(--soft)] text-[10px] mt-1 font-bold">alertes actives</div>
+          </div>
+        </div>
       </div>
-      <div class="bg-white p-6 rounded-lg shadow">
-        <div class="text-sm text-gray-600 mb-2">Catégories</div>
-        <div class="text-3xl font-bold">{{ categories.length }}</div>
-        <div class="text-xs text-gray-500">catégories</div>
+      <div class="card p-6">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3-1.343-3-3s1.343-3 3-3 3 3 .895.002 2 2 2v2c0 1.657 1.343 3 3 3s3-1.343 3-3-3-3-3z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13"/>
+            </svg>
+          </div>
+          <div>
+            <div class="text-[var(--soft)] text-xs font-bold uppercase tracking-wider">Revenus du Mois</div>
+            <div class="text-3xl font-bold text-[var(--text)]">{{ (totalStockValue / 1000000).toFixed(1) }}M</div>
+            <div class="text-[var(--soft)] text-[10px] mt-1 font-bold">FCFA</div>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Filters -->
-    <div class="bg-white p-4 rounded-lg shadow space-y-3">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
+    <div class="card p-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div class="search-wrap">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
           <input 
             v-model="filters.search" 
             placeholder="Rechercher un produit..."
-            class="w-full px-3 py-2 border rounded"
+            class="search-input"
           />
         </div>
-        <select v-model="filters.category" class="px-3 py-2 border rounded">
+        <select v-model="filters.category" class="filter-select">
           <option value="">Toutes catégories</option>
           <option value="Aliment">Aliment</option>
           <option value="Médicament">Médicament</option>
@@ -111,12 +162,20 @@
           <option value="Autre">Autre</option>
         </select>
       </div>
-      <button 
-        @click="resetFilters"
-        class="text-blue-600 hover:text-blue-800 text-sm font-medium"
-      >
-        Réinitialiser filtres
-      </button>
+      <div class="flex items-center justify-between">
+        <button 
+          @click="resetFilters"
+          class="text-[var(--primary)] hover:text-[var(--text)] text-sm font-medium flex items-center gap-2 transition-colors"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          Réinitialiser filtres
+        </button>
+        <div class="text-[var(--soft)] text-sm">
+          {{ filteredProducts.length }} résultat(s)
+        </div>
+      </div>
     </div>
 
     <!-- Loading State -->
