@@ -570,3 +570,162 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style scoped>
+/* Correction des modaux pour éviter les conflits avec le CSS global */
+
+/* Overlay des modaux */
+.fixed.inset-0 {
+  z-index: 9999 !important;
+}
+
+/* Conteneur des modaux */
+.fixed > div {
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+}
+
+/* Espacement des modaux */
+.bg-white.rounded-lg.shadow-lg {
+  padding: 2.5rem !important; /* 40px */
+  margin: 1rem !important;
+  border-radius: 0.75rem !important; /* 12px au lieu de 16px */
+}
+
+.bg-white.rounded-lg.shadow-lg.p-8 {
+  padding: 2.5rem !important; /* 40px */
+}
+
+/* Espacement entre les éléments */
+.space-y-4 > * + * {
+  margin-top: 1rem !important; /* 16px */
+}
+
+.space-y-6 > * + * {
+  margin-top: 1.5rem !important; /* 24px */
+}
+
+/* Champs de formulaire */
+input[type="text"],
+input[type="number"],
+select {
+  padding: 0.75rem 1rem !important; /* 12px 16px */
+  border-radius: 0.75rem !important; /* 12px */
+  border: 1px solid var(--border) !important;
+  background: var(--card) !important;
+  color: var(--text) !important;
+  font-size: 0.875rem !important; /* 14px */
+  transition: all 0.2s ease !important;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+select:focus {
+  outline: none !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(61, 43, 31, 0.1) !important;
+}
+
+/* Labels */
+label {
+  display: block !important;
+  font-size: 0.875rem !important; /* 14px */
+  font-weight: 500 !important;
+  color: var(--text) !important;
+  margin-bottom: 0.5rem !important; /* 8px */
+}
+
+/* Boutons */
+button {
+  border-radius: 0.75rem !important; /* 12px au lieu de 16px */
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Bouton principal (submit) */
+button[type="submit"] {
+  background: var(--primary) !important;
+  color: white !important;
+  border: none !important;
+  padding: 0.75rem 1.5rem !important; /* 12px 24px */
+}
+
+button[type="submit"]:hover {
+  background: color-mix(in srgb, var(--primary) 90%, black) !important;
+  transform: translateY(-1px) !important;
+}
+
+button[type="submit"]:disabled {
+  background: #9ca3af !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+/* Bouton secondaire */
+button[type="button"] {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  padding: 0.75rem 1.5rem !important; /* 12px 24px */
+}
+
+button[type="button"]:hover {
+  background: var(--border) !important;
+}
+
+/* Boutons action (table) */
+button:not([type]) {
+  padding: 0.5rem 1rem !important; /* 8px 16px */
+  border-radius: 0.5rem !important; /* 8px */
+  font-size: 0.8125rem !important; /* 13px */
+}
+
+button:not([type]):hover {
+  transform: translateY(-1px) !important;
+}
+
+/* Header des modaux */
+.flex.justify-between.items-center.mb-6 {
+  margin-bottom: 1.5rem !important; /* 24px */
+}
+
+/* Footer des modaux */
+.flex.justify-end.gap-2.pt-6 {
+  padding-top: 1.5rem !important; /* 24px */
+  margin-top: 1.5rem !important; /* 24px */
+  border-top: 1px solid var(--border) !important;
+}
+
+/* Grid des formulaires */
+.grid.grid-cols-2.gap-4 {
+  gap: 1rem !important; /* 16px */
+}
+
+/* Sections des modaux */
+.grid.grid-cols-2.gap-6 {
+  gap: 1.5rem !important; /* 24px */
+}
+
+/* Contenu des détails */
+.bg-gray-50.p-4.rounded-lg {
+  padding: 1.5rem !important; /* 24px */
+  border-radius: 0.75rem !important; /* 12px */
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .bg-white.rounded-lg.shadow-lg {
+    margin: 0.5rem !important;
+    padding: 1.5rem !important; /* 24px */
+  }
+  
+  button {
+    padding: 0.625rem 1rem !important; /* 10px 16px */
+    font-size: 0.8125rem !important; /* 13px */
+  }
+  
+  .grid.grid-cols-2 {
+    grid-template-columns: 1fr !important;
+  }
+}
+</style>

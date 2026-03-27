@@ -75,60 +75,73 @@
     </div>
 
     <!-- Modal Details -->
-    <div v-if="showDetailsModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
+    <div v-if="showDetailsModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl border border-[var(--border)] transform transition-all duration-300 scale-100">
         <div class="flex justify-between items-center mb-6">
-          <h2 class="text-2xl font-bold text-slate-800">Détails Utilisateur</h2>
-          <button @click="showDetailsModal = false" class="text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
+          <h2 class="text-2xl font-bold text-[var(--text)]">Détails Utilisateur</h2>
+          <button @click="showDetailsModal = false" class="text-[var(--soft)] hover:text-[var(--text)] hover:bg-[var(--bg)] p-2 rounded-lg transition-all duration-200 text-2xl leading-none flex items-center justify-center w-8 h-8">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
         </div>
         
-        <div v-if="selectedUser" class="space-y-4">
+        <div v-if="selectedUser" class="space-y-6">
           <div class="flex flex-col items-center mb-6">
-            <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center text-3xl font-bold text-blue-600 mb-2">
+            <div class="w-24 h-24 bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] rounded-full flex items-center justify-center text-3xl font-bold text-white mb-4 shadow-lg">
               {{ selectedUser.name.charAt(0).toUpperCase() }}
             </div>
-            <h3 class="text-xl font-semibold">{{ selectedUser.name }}</h3>
-            <span :class="selectedUser.actif ? 'text-green-600' : 'text-red-600'" class="text-sm font-medium">
-              ● {{ selectedUser.actif ? 'Compte Actif' : 'Compte Inactif' }}
+            <h3 class="text-xl font-bold text-[var(--text)]">{{ selectedUser.name }}</h3>
+            <span :class="selectedUser.actif ? 'bg-[var(--success)]/10 text-[var(--success)]' : 'bg-[var(--danger)]/10 text-[var(--danger)]'" class="text-sm font-medium px-3 py-1 rounded-full inline-flex items-center gap-2 mt-2">
+              <span class="w-2 h-2 rounded-full" :class="selectedUser.actif ? 'bg-[var(--success)]' : 'bg-[var(--danger)]'"></span>
+              {{ selectedUser.actif ? 'Compte Actif' : 'Compte Inactif' }}
             </span>
           </div>
 
-          <div class="grid grid-cols-1 gap-4 bg-slate-50 p-4 rounded-lg">
-            <div>
-              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Email</label>
-              <p class="text-slate-900 font-medium">{{ selectedUser.email }}</p>
+          <div class="space-y-4 bg-[var(--bg)] p-6 rounded-xl">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-bold text-[var(--soft)] uppercase tracking-wider">Email</label>
+              <p class="text-[var(--text)] font-medium text-sm">{{ selectedUser.email }}</p>
             </div>
-            <div>
-              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Rôle</label>
-              <p class="capitalize text-slate-900 font-medium">{{ selectedUser.role }}</p>
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-bold text-[var(--soft)] uppercase tracking-wider">Rôle</label>
+              <span :class="{
+                'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400': selectedUser.role === 'admin',
+                'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400': selectedUser.role === 'gerant',
+                'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400': selectedUser.role === 'agent',
+              }" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                {{ selectedUser.role }}
+              </span>
             </div>
-            <div v-if="selectedUser.role === 'gerant' && selectedUser.campaignsAssignees?.length">
-              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Campagnes Assignées</label>
-              <ul class="mt-1 space-y-1">
-                <li v-for="campId in selectedUser.campaignsAssignees" :key="campId" class="text-sm text-slate-700 flex items-center gap-2">
-                  <span class="w-2 h-2 bg-blue-400 rounded-full"></span>
-                  {{ getCampaignName(campId) }}
-                </li>
-              </ul>
+            <div v-if="selectedUser.role === 'gerant' && selectedUser.campaignsAssignees?.length" class="pt-2 border-t border-[var(--border)]">
+              <label class="block text-xs font-bold text-[var(--soft)] uppercase tracking-wider mb-3">Campagnes Assignées</label>
+              <div class="space-y-2">
+                <div v-for="campId in selectedUser.campaignsAssignees" :key="campId" class="flex items-center gap-3 p-2 bg-white rounded-lg">
+                  <span class="w-2 h-2 bg-blue-400 rounded-full flex-shrink-0"></span>
+                  <span class="text-sm text-[var(--text)]">{{ getCampaignName(campId) }}</span>
+                </div>
+              </div>
             </div>
-            <div v-if="(selectedUser.role === 'gerant' || selectedUser.role === 'agent') && selectedUser.farms?.length">
-              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Fermes Assignées</label>
-              <ul class="mt-1 space-y-1">
-                <li v-for="farmId in selectedUser.farms" :key="farmId" class="text-sm text-slate-700 flex items-center gap-2">
-                  <span class="w-2 h-2 bg-green-400 rounded-full"></span>
-                  {{ getFarmName(farmId) }}
-                </li>
-              </ul>
+            <div v-if="(selectedUser.role === 'gerant' || selectedUser.role === 'agent') && selectedUser.farms?.length" class="pt-2 border-t border-[var(--border)]">
+              <label class="block text-xs font-bold text-[var(--soft)] uppercase tracking-wider mb-3">Fermes Assignées</label>
+              <div class="space-y-2">
+                <div v-for="farmId in selectedUser.farms" :key="farmId" class="flex items-center gap-3 p-2 bg-white rounded-lg">
+                  <span class="w-2 h-2 bg-green-400 rounded-full flex-shrink-0"></span>
+                  <span class="text-sm text-[var(--text)]">{{ getFarmName(farmId) }}</span>
+                </div>
+              </div>
             </div>
-            <div v-if="selectedUser.role === 'agent' && selectedUser.campaignsAssignees?.length">
-              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Campagne de Travail</label>
-              <p class="text-slate-900 font-medium">{{ getCampaignName(selectedUser.campaignsAssignees[0]) }}</p>
+            <div v-if="selectedUser.role === 'agent' && selectedUser.campaignsAssignees?.length" class="pt-2 border-t border-[var(--border)]">
+              <label class="block text-xs font-bold text-[var(--soft)] uppercase tracking-wider mb-3">Campagne de Travail</label>
+              <div class="p-2 bg-white rounded-lg">
+                <span class="text-sm text-[var(--text)]">{{ getCampaignName(selectedUser.campaignsAssignees[0]) }}</span>
+              </div>
             </div>
           </div>
         </div>
 
         <div class="mt-8">
-          <button @click="showDetailsModal = false" class="w-full px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors">
+          <button @click="showDetailsModal = false" class="w-full px-6 py-3 bg-[var(--bg)] hover:bg-[var(--border)] text-[var(--text)] rounded-xl font-medium transition-all duration-200 border border-[var(--border)]">
             Fermer
           </button>
         </div>
@@ -136,62 +149,66 @@
     </div>
 
     <!-- Modal Edit -->
-    <div v-if="showEditModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
+    <div v-if="showEditModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl border border-[var(--border)] transform transition-all duration-300 scale-100 max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-6">
-          <h2 class="text-xl font-bold text-slate-800">Modifier Utilisateur</h2>
-          <button @click="showEditModal = false" class="text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
+          <h2 class="text-xl font-bold text-[var(--text)]">Modifier Utilisateur</h2>
+          <button @click="showEditModal = false" class="text-[var(--soft)] hover:text-[var(--text)] hover:bg-[var(--bg)] p-2 rounded-lg transition-all duration-200 text-2xl leading-none flex items-center justify-center w-8 h-8">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
         </div>
         
-        <form @submit.prevent="updateUser" class="space-y-4">
-          <div class="flex gap-4 mb-4 border-b">
+        <form @submit.prevent="updateUser" class="space-y-6">
+          <div class="flex gap-6 mb-6 border-b border-[var(--border)]">
             <button 
               type="button" 
               @click="editTab = 'info'" 
-              :class="editTab === 'info' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'"
-              class="pb-2 px-1 border-b-2 font-medium text-sm transition-colors"
+              :class="editTab === 'info' ? 'border-[var(--primary)] text-[var(--primary)] bg-[var(--primary)]/5' : 'border-transparent text-[var(--soft)] hover:text-[var(--text)]'"
+              class="pb-3 px-4 border-b-2 font-medium text-sm transition-all duration-200 rounded-t-lg"
             >
               Informations
             </button>
             <button 
               type="button" 
               @click="editTab = 'password'" 
-              :class="editTab === 'password' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'"
-              class="pb-2 px-1 border-b-2 font-medium text-sm transition-colors"
+              :class="editTab === 'password' ? 'border-[var(--primary)] text-[var(--primary)] bg-[var(--primary)]/5' : 'border-transparent text-[var(--soft)] hover:text-[var(--text)]'"
+              class="pb-3 px-4 border-b-2 font-medium text-sm transition-all duration-200 rounded-t-lg"
             >
               Sécurité
             </button>
           </div>
 
-          <div v-if="editTab === 'info'" class="space-y-4">
+          <div v-if="editTab === 'info'" class="space-y-5">
             <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1">Nom Complet</label>
-              <input v-model="editingUser.name" type="text" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" required />
+              <label class="block text-sm font-medium text-[var(--text)] mb-2">Nom Complet</label>
+              <input v-model="editingUser.name" type="text" class="w-full px-4 py-3 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] outline-none transition-all duration-200" required />
             </div>
             <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
-              <input v-model="editingUser.email" type="email" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" required />
+              <label class="block text-sm font-medium text-[var(--text)] mb-2">Email</label>
+              <input v-model="editingUser.email" type="email" class="w-full px-4 py-3 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] outline-none transition-all duration-200" required />
             </div>
             <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1">Rôle</label>
-              <select v-model="editingUser.role" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+              <label class="block text-sm font-medium text-[var(--text)] mb-2">Rôle</label>
+              <select v-model="editingUser.role" class="w-full px-4 py-3 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] outline-none transition-all duration-200">
                 <option value="admin">Administrateur</option>
                 <option value="gerant">Gérant de ferme</option>
                 <option value="agent">Agent de terrain</option>
               </select>
             </div>
             <div v-if="editingUser.role === 'gerant' || editingUser.role === 'agent'">
-              <label class="block text-sm font-medium text-slate-700 mb-1">Ferme(s) Assignée(s)</label>
-              <select v-model="editingUser.farms" multiple class="w-full px-4 py-2 border border-slate-300 rounded-lg h-24">
+              <label class="block text-sm font-medium text-[var(--text)] mb-2">Ferme(s) Assignée(s)</label>
+              <select v-model="editingUser.farms" multiple class="w-full px-4 py-3 border border-[var(--border)] rounded-xl h-24 focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] outline-none transition-all duration-200">
                 <option v-for="farm in farms" :key="farm._id" :value="farm._id">
                   {{ farm.name }}
                 </option>
               </select>
-              <p class="text-xs text-slate-500 mt-1">Maintenez Ctrl pour sélectionner plusieurs fermes (Gérant uniquement)</p>
+              <p class="text-xs text-[var(--soft)] mt-2">Maintenez Ctrl pour sélectionner plusieurs fermes (Gérant uniquement)</p>
             </div>
             <div v-if="editingUser.role === 'gerant' || editingUser.role === 'agent'">
-              <label class="block text-sm font-medium text-slate-700 mb-1">Campagne(s) Assignée(s)</label>
-              <select v-model="editingUser.campaignsAssignees" multiple class="w-full px-4 py-2 border border-slate-300 rounded-lg h-24">
+              <label class="block text-sm font-medium text-[var(--text)] mb-2">Campagne(s) Assignée(s)</label>
+              <select v-model="editingUser.campaignsAssignees" multiple class="w-full px-4 py-3 border border-[var(--border)] rounded-xl h-24 focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] outline-none transition-all duration-200">
                 <option v-for="campaign in campaigns" :key="campaign._id" :value="campaign._id">
                   {{ campaign.name }}
                 </option>
@@ -199,21 +216,27 @@
             </div>
           </div>
 
-          <div v-if="editTab === 'password'" class="space-y-4">
-            <div class="bg-amber-50 p-3 rounded text-amber-800 text-sm mb-4">
-              Modifier le mot de passe de l'utilisateur.
+          <div v-if="editTab === 'password'" class="space-y-5">
+            <div class="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl text-amber-800 dark:text-amber-200 text-sm mb-4 border border-amber-200 dark:border-amber-800">
+              <div class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                </svg>
+                <span>Modifier le mot de passe de l'utilisateur.</span>
+              </div>
             </div>
             <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1">Nouveau mot de passe</label>
-              <input v-model="newPassword" type="password" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Min. 6 caractères" />
+              <label class="block text-sm font-medium text-[var(--text)] mb-2">Nouveau mot de passe</label>
+              <input v-model="newPassword" type="password" class="w-full px-4 py-3 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] outline-none transition-all duration-200" placeholder="Min. 6 caractères" />
             </div>
           </div>
 
-          <div class="flex gap-3 mt-6 pt-4 border-t">
-            <button type="button" @click="showEditModal = false" class="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50">
+          <div class="flex gap-3 mt-8 pt-6 border-t border-[var(--border)]">
+            <button type="button" @click="showEditModal = false" class="flex-1 px-6 py-3 border border-[var(--border)] text-[var(--text)] rounded-xl font-medium hover:bg-[var(--bg)] transition-all duration-200">
               Annuler
             </button>
-            <button type="submit" :disabled="isSaving" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-blue-300">
+            <button type="submit" :disabled="isSaving" class="flex-1 px-6 py-3 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-white rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+              <span v-if="isSaving" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
               {{ isSaving ? 'Enregistrement...' : 'Enregistrer' }}
             </button>
           </div>
@@ -222,42 +245,49 @@
     </div>
 
     <!-- Modal Inviter -->
-    <div v-if="showNewModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 max-w-md w-full">
-        <h2 class="text-xl font-bold mb-4">Inviter Utilisateur</h2>
-        <form @submit.prevent="submitUser" class="space-y-4">
+    <div v-if="showNewModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl p-10 max-w-md w-full shadow-2xl border border-[var(--border)] transform transition-all duration-300 scale-100 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-bold text-[var(--text)]">Inviter Utilisateur</h2>
+          <button @click="showNewModal = false" class="text-[var(--soft)] hover:text-[var(--text)] hover:bg-[var(--bg)] p-2 rounded-lg transition-all duration-200 text-2xl leading-none flex items-center justify-center w-8 h-8">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <form @submit.prevent="submitUser" class="space-y-5">
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Nom</label>
+            <label class="block text-sm font-medium text-[var(--text)] mb-2">Nom</label>
             <input
               v-model="newUser.name"
               type="text"
-              class="w-full px-4 py-2 border border-slate-300 rounded-lg"
+              class="w-full px-4 py-3 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] outline-none transition-all duration-200"
               required
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+            <label class="block text-sm font-medium text-[var(--text)] mb-2">Email</label>
             <input
               v-model="newUser.email"
               type="email"
-              class="w-full px-4 py-2 border border-slate-300 rounded-lg"
+              class="w-full px-4 py-3 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] outline-none transition-all duration-200"
               required
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Mot de passe</label>
+            <label class="block text-sm font-medium text-[var(--text)] mb-2">Mot de passe</label>
             <input
               v-model="newUser.password"
               type="password"
-              class="w-full px-4 py-2 border border-slate-300 rounded-lg"
+              class="w-full px-4 py-3 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] outline-none transition-all duration-200"
               required
               minlength="6"
               placeholder="Minimum 6 caractères"
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Rôle</label>
-            <select v-model="newUser.role" class="w-full px-4 py-2 border border-slate-300 rounded-lg">
+            <label class="block text-sm font-medium text-[var(--text)] mb-2">Rôle</label>
+            <select v-model="newUser.role" class="w-full px-4 py-3 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] outline-none transition-all duration-200">
               <option value="admin">Admin</option>
               <option value="gerant">Gérant</option>
               <option value="agent">Agent</option>
@@ -265,13 +295,13 @@
           </div>
 
           <div v-if="newUser.role === 'gerant' || newUser.role === 'agent'">
-            <label class="block text-sm font-medium text-slate-700 mb-1">
+            <label class="block text-sm font-medium text-[var(--text)] mb-2">
               {{ newUser.role === 'gerant' ? 'Ferme(s) à gérer' : 'Ferme de travail' }}
             </label>
             <select
               v-model="newUser.farms"
               :multiple="newUser.role === 'gerant'"
-              class="w-full px-4 py-2 border border-slate-300 rounded-lg"
+              class="w-full px-4 py-3 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] outline-none transition-all duration-200"
               :class="newUser.role === 'gerant' ? 'h-24' : ''"
               required
             >
@@ -283,13 +313,13 @@
           </div>
 
           <div v-if="newUser.role === 'gerant' || newUser.role === 'agent'">
-            <label class="block text-sm font-medium text-slate-700 mb-1">
+            <label class="block text-sm font-medium text-[var(--text)] mb-2">
               {{ newUser.role === 'gerant' ? 'Campagne(s) Assignée(s) (Optionnel)' : 'Campagne de travail' }}
             </label>
             <select
               v-model="newUser.campaignsAssignees"
               :multiple="newUser.role === 'gerant'"
-              class="w-full px-4 py-2 border border-slate-300 rounded-lg"
+              class="w-full px-4 py-3 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] outline-none transition-all duration-200"
               :class="newUser.role === 'gerant' ? 'h-24' : ''"
               :required="newUser.role === 'agent'"
             >
@@ -303,16 +333,19 @@
               </option>
             </select>
           </div>
-          <div class="flex gap-2">
+          <div class="flex gap-3 pt-6 border-t border-[var(--border)]">
             <button
               type="button"
               @click="showNewModal = false"
-              class="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg"
+              class="flex-1 px-6 py-3 border border-[var(--border)] text-[var(--text)] rounded-xl font-medium hover:bg-[var(--bg)] transition-all duration-200"
             >
               Annuler
             </button>
-            <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg">
-              Inviter
+            <button type="submit" class="flex-1 px-6 py-3 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-white rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              <span class="text-white">Inviter</span>
             </button>
           </div>
         </form>
@@ -477,9 +510,26 @@ const submitUser = async () => {
         ui.warning('Un gérant doit être assigné à au moins une ferme')
         return
       }
-      userData.farms = userData.farms.filter(id => id)
-      userData.campaignsAssignees = userData.campaignsAssignees.filter(id => id)
+      // S'assurer que c'est un tableau
+      if (!Array.isArray(userData.farms)) {
+        userData.farms = [userData.farms].filter(id => id)
+      } else {
+        userData.farms = userData.farms.filter(id => id)
+      }
+      if (!Array.isArray(userData.campaignsAssignees)) {
+        userData.campaignsAssignees = [userData.campaignsAssignees].filter(id => id)
+      } else {
+        userData.campaignsAssignees = userData.campaignsAssignees.filter(id => id)
+      }
     } else if (userData.role === 'agent') {
+      // S'assurer que les données sont des tableaux
+      if (!Array.isArray(userData.farms)) {
+        userData.farms = userData.farms ? [userData.farms] : []
+      }
+      if (!Array.isArray(userData.campaignsAssignees)) {
+        userData.campaignsAssignees = userData.campaignsAssignees ? [userData.campaignsAssignees] : []
+      }
+      
       if (!userData.farms || userData.farms.length === 0 || !userData.farms[0]) {
         ui.warning('Un agent doit être assigné à une ferme')
         return
@@ -553,3 +603,155 @@ onMounted(() => {
   fetchCampaigns()
 })
 </script>
+
+<style scoped>
+/* Correction des modaux pour éviter les conflits avec le CSS global */
+
+/* Overlay des modaux */
+.fixed.inset-0 {
+  z-index: 9999 !important;
+}
+
+/* Conteneur des modaux */
+.fixed > div {
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+}
+
+/* Espacement du modal */
+.bg-white.rounded-2xl {
+  padding: 2.5rem !important; /* 40px */
+  margin: 1rem !important;
+}
+
+/* Espacement entre les éléments */
+.space-y-5 > * + * {
+  margin-top: 1.25rem !important; /* 20px */
+}
+
+.space-y-6 > * + * {
+  margin-top: 1.5rem !important; /* 24px */
+}
+
+/* Champs de formulaire */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+select {
+  padding: 0.75rem 1rem !important; /* 12px 16px */
+  border-radius: 0.75rem !important; /* 12px */
+  border: 1px solid var(--border) !important;
+  background: var(--card) !important;
+  color: var(--text) !important;
+  font-size: 0.875rem !important; /* 14px */
+  transition: all 0.2s ease !important;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+select:focus {
+  outline: none !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(61, 43, 31, 0.1) !important;
+}
+
+/* Labels */
+label {
+  display: block !important;
+  font-size: 0.875rem !important; /* 14px */
+  font-weight: 500 !important;
+  color: var(--text) !important;
+  margin-bottom: 0.5rem !important; /* 8px */
+}
+
+/* Boutons */
+button {
+  border-radius: 0.75rem !important; /* 12px au lieu de 16px */
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Bouton principal */
+button[type="submit"] {
+  background: var(--primary) !important;
+  color: white !important;
+  border: none !important;
+  padding: 0.75rem 1.5rem !important; /* 12px 24px */
+}
+
+button[type="submit"]:hover {
+  background: color-mix(in srgb, var(--primary) 90%, black) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Bouton secondaire */
+button[type="button"] {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  padding: 0.75rem 1.5rem !important; /* 12px 24px */
+}
+
+button[type="button"]:hover {
+  background: var(--border) !important;
+}
+
+/* Header du modal */
+.flex.justify-between.items-center.mb-6 {
+  margin-bottom: 1.5rem !important; /* 24px */
+}
+
+/* Footer du modal */
+.flex.gap-3.pt-6 {
+  padding-top: 1.5rem !important; /* 24px */
+  margin-top: 1.5rem !important; /* 24px */
+  border-top: 1px solid var(--border) !important;
+}
+
+/* Tabs */
+.flex.gap-6.border-b {
+  border-bottom: 1px solid var(--border) !important;
+  margin-bottom: 1.5rem !important; /* 24px */
+}
+
+/* Avatar dans le modal détails */
+.w-24.h-24.bg-gradient-to-br {
+  width: 6rem !important; /* 96px */
+  height: 6rem !important; /* 96px */
+  font-size: 2rem !important; /* 32px */
+  margin-bottom: 1rem !important; /* 16px */
+}
+
+/* Badges de statut */
+.px-3.py-1.rounded-full {
+  padding: 0.5rem 0.75rem !important; /* 8px 12px */
+  font-size: 0.75rem !important; /* 12px */
+}
+
+/* Contenu des détails */
+.space-y-4.bg-\[var\(--bg\)\].p-6.rounded-xl {
+  padding: 1.5rem !important; /* 24px */
+  border-radius: 0.75rem !important; /* 12px */
+}
+
+/* Items dans les listes */
+.flex.items-center.gap-3.p-2.bg-white.rounded-lg {
+  padding: 0.5rem !important; /* 8px */
+  border-radius: 0.5rem !important; /* 8px */
+  margin-bottom: 0.5rem !important; /* 8px */
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .bg-white.rounded-2xl {
+    margin: 0.5rem !important;
+    padding: 1.5rem !important; /* 24px */
+  }
+  
+  button {
+    padding: 0.625rem 1rem !important; /* 10px 16px */
+    font-size: 0.8125rem !important; /* 13px */
+  }
+}
+</style>
