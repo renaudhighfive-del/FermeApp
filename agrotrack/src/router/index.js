@@ -31,6 +31,7 @@ const GerantFinance    = () => import('@/views/gerant/G7_Finance.vue')
 const GerantSales      = () => import('@/views/gerant/G8_Sales.vue')
 const GerantReports    = () => import('@/views/gerant/G9_Reports.vue')
 const GerantAnimalFiche = () => import('@/views/gerant/G10_AnimalFiche.vue')
+const GerantStock      = () => import('@/views/gerant/G11_Stock.vue')
 
 // ── AGENT ─────────────────────────────────────────────────────────
 const AgentDashboard = () => import('@/views/agent/AG1_Dashboard.vue')
@@ -78,6 +79,7 @@ const routes = [
       { path: 'animals',        component: GerantAnimals    },
       { path: 'health',         component: GerantHealth     },
       { path: 'food',           component: GerantFood       },
+      { path: 'stock',          component: GerantStock      },
       { path: 'finance',        component: GerantFinance    },
       { path: 'sales',          component: GerantSales      },
       { path: 'reports',        component: GerantReports    },

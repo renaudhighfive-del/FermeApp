@@ -7,6 +7,7 @@ import { formatCurrency, formatDate, getAnimalPercentage, getBudgetPercentage, g
 import ModalAddAnimal from '@/components/common/ModalAddAnimal.vue'
 import ModalHealthEvent from '@/components/common/ModalHealthEvent.vue'
 import ModalEditCampaign from '@/components/common/ModalEditCampaign.vue'
+import ModalNewTransaction from '@/components/common/ModalNewTransaction.vue'
 import QRCode from 'qrcode'
 
 const router = useRouter()
@@ -23,6 +24,8 @@ const animalSearch = ref('')
 const showCreateAnimalModal = ref(false)
 const showHealthModal = ref(false)
 const showEditModal = ref(false)
+const showTransactionModal = ref(false)
+const transactionType = ref('Dépense')
 const selectedAnimal = ref(null)
 const showQRModal = ref(false)
 const qrCodeDataURL = ref('')
@@ -60,6 +63,15 @@ async function loadCampaignData() {
 
 function goAnimal(id) {
   router.push('/gerant/animal/' + id.replace('#', ''))
+}
+
+function goBackToCampaigns() {
+  router.push('/gerant/campaigns')
+}
+
+function openTransactionModal(type) {
+  transactionType.value = type
+  showTransactionModal.value = true
 }
 
 // Computed properties
@@ -187,6 +199,12 @@ Généré le: ${reportData.date}
             getDaysRemaining(campaign.startDate) }} jours</p>
         </div>
         <div class="page-actions">
+          <button class="btn btn-outline btn-sm" @click="goBackToCampaigns">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            Retour
+          </button>
           <button class="btn btn-outline btn-sm" @click="showCreateAnimalModal = true"><svg width="14" height="14"
               fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
               <line x1="12" y1="5" x2="12" y2="19" />
@@ -491,7 +509,7 @@ Généré le: ${reportData.date}
             </svg>Main d'œuvre</div>
           <div class="line-item-val">185 000 FCFA</div>
         </div>
-        <button class="btn btn-danger-outline btn-sm w-full" style="margin-top:14px;justify-content:center">+ Ajouter
+        <button class="btn btn-danger-outline btn-sm w-full" style="margin-top:14px;justify-content:center" @click="openTransactionModal('Dépense')">+ Ajouter
           dépense</button>
       </div>
       <div class="rev-card">
@@ -511,7 +529,7 @@ Généré le: ${reportData.date}
           </svg>
           <p>Aucune vente pour le moment</p>
         </div>
-        <button class="btn btn-success-outline btn-sm w-full" style="justify-content:center">+ Enregistrer
+        <button class="btn btn-success-outline btn-sm w-full" style="justify-content:center" @click="openTransactionModal('Revenu')">+ Enregistrer
           vente</button>
       </div>
     </div>
@@ -527,7 +545,7 @@ Généré le: ${reportData.date}
           <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
         </svg>
         <p style="font-size:16px;color:var(--soft);margin-bottom:16px">Aucune vente enregistrée</p>
-        <button class="btn btn-primary">+ Enregistrer une vente</button>
+        <button class="btn btn-primary" @click="openTransactionModal('Revenu')">+ Enregistrer une vente</button>
       </div>
     </div>
   </div>
@@ -584,6 +602,16 @@ Généré le: ${reportData.date}
   <!-- Modal Créer Événement Santé -->
   <ModalHealthEvent v-if="showHealthModal" :open="showHealthModal" :campaign="campaign" @close="showHealthModal = false"
     @created="loadCampaignData" />
+
+  <!-- Modal Ajouter transaction (dépense/revenu) -->
+  <ModalNewTransaction
+    v-if="showTransactionModal"
+    :open="showTransactionModal"
+    :campaign="campaign"
+    :type="transactionType"
+    @close="showTransactionModal = false"
+    @created="loadCampaignData"
+  />
   </div>
 
 </template>

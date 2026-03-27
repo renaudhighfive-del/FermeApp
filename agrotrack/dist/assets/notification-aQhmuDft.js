@@ -1,0 +1,1 @@
+import{H as r,r as f}from"./index-DYA4v314.js";const u=r("notification",()=>{const t=f([]),a=(o,e="info",s=2e3)=>{const n=Date.now();t.value.push({id:n,message:o,type:e}),s>0&&setTimeout(()=>{i(n)},s)},i=o=>{t.value=t.value.filter(e=>e.id!==o)};return{toasts:t,add:a,remove:i}});export{u};
