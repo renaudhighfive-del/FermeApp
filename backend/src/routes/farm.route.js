@@ -6,13 +6,17 @@ import {
   getFarm,
   updateFarm,
   deleteFarm,
+  transferFarmData,
+  listTransferLogs,
 } from "../controllers/farm.controller.js";
 
 const router = express.Router();
 
 router.post("/", requireAuth, autoriser("admin"), createFarm);
 router.get("/", requireAuth, getFarms);
+router.get("/transfer-logs", requireAuth, autoriser("admin"), listTransferLogs);
 router.get("/:id", requireAuth, getFarm);
+router.post("/:id/transfer", requireAuth, autoriser("admin"), transferFarmData);
 router.put("/:id", requireAuth, autoriser("admin"), updateFarm);
 router.delete("/:id", requireAuth, autoriser("admin"), deleteFarm);
 

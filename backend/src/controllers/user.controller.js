@@ -1,6 +1,9 @@
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import { User } from "../models/User.js";
+import Campaign from "../models/Campaign.js";
+import Event from "../models/Events.js";
+import UserLifecycleEvent from "../models/UserLifecycleEvent.js";
 import { creerOneUser } from "../services/user.service.js";
 
 // ── Créer un user (admin seulement) ──────────────────────────────
@@ -16,7 +19,14 @@ export async function creerUser(req, res, next) {
 // ── Lister tous les users (admin et gerant) ───────────────────────
 export async function listerUsers(req, res, next) {
   try {
-    const { role, actif, page = 1, limit = 20 } = req.query;
+    const {
+      role,
+      actif,
+      archived,
+      includeArchived = "false",
+      page = 1,
+      limit = 20,
+    } = req.query;
 
     const filtre = {};
     
@@ -28,6 +38,11 @@ export async function listerUsers(req, res, next) {
     }
 
     if (actif !== undefined) filtre.actif = actif === "true";
+    if (archived !== undefined) {
+      filtre.archivedAt = archived === "true" ? { $ne: null } : null;
+    } else if (includeArchived !== "true") {
+      filtre.archivedAt = null;
+    }
 
     const skip = (Number(page) - 1) * Number(limit);
     const total = await User.countDocuments(filtre);
@@ -70,6 +85,63 @@ export async function obtenirUser(req, res, next) {
     res.json({ user });
   } catch (err) {
     return next(err)
+  }
+}
+
+// ── Profil enrichi utilisateur ─────────────────────────────────────
+export async function obtenirUserProfile(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "ID invalide" });
+    }
+
+    const user = await User.findById(id)
+      .select("-__v -passwordHash")
+      .populate("farms", "name location active")
+      .populate("campaignsAssignees", "name status startDate endDate farm")
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur introuvable" });
+    }
+
+    const [managedCampaignsCount, activeManagedCampaignsCount, eventsAssignedCount, eventsCreatedCount] =
+      await Promise.all([
+        Campaign.countDocuments({
+          $or: [{ managers: id }, { agents: id }],
+        }),
+        Campaign.countDocuments({
+          status: "En cours",
+          $or: [{ managers: id }, { agents: id }],
+        }),
+        Event.countDocuments({ assignedTo: id }),
+        Event.countDocuments({ createdBy: id }),
+      ]);
+
+    const profile = {
+      ...user,
+      stats: {
+        farmsAssignedCount: user.farms?.length || 0,
+        campaignsAssignedCount: user.campaignsAssignees?.length || 0,
+        activeAssignedCampaignsCount:
+          user.campaignsAssignees?.filter((c) => c.status === "En cours").length || 0,
+        managedCampaignsCount,
+        activeManagedCampaignsCount,
+        eventsAssignedCount,
+        eventsCreatedCount,
+      },
+      lifecycle: await UserLifecycleEvent.find({ user: id })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .populate("actor", "name email role")
+        .lean(),
+    };
+
+    return res.json({ user: profile });
+  } catch (err) {
+    return next(err);
   }
 }
 
@@ -217,7 +289,16 @@ export async function toggleUserStatus(req, res, next) {
       id,
       { $set: { actif: nouveauStatut } },
       { new: true },
-    ).select("name email role actif");
+    ).select("name email role actif archivedAt archivedBy archiveReason");
+
+    await UserLifecycleEvent.create({
+      user: id,
+      action: "status_toggled",
+      actor: req.user?.userId || null,
+      metadata: {
+        actif: user?.actif,
+      },
+    });
 
     res.json({ 
       message: nouveauStatut ? "Utilisateur activé" : "Utilisateur désactivé", 
@@ -228,10 +309,11 @@ export async function toggleUserStatus(req, res, next) {
   }
 }
 
-// ── Supprimer un user (admin seulement) ───────────────────────────
-export async function supprimerUser(req, res, next) {
+// ── Archiver un user (admin seulement) ────────────────────────────
+export async function archiverUser(req, res, next) {
   try {
     const { id } = req.params;
+    const { reason } = req.body ?? {};
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "ID invalide" });
@@ -242,24 +324,32 @@ export async function supprimerUser(req, res, next) {
       return res.status(404).json({ message: "Utilisateur introuvable" });
     }
 
-    // 1. Nettoyer les relations dans les fermes et campagnes
-    try {
-      await mongoose.model('Farm').updateMany(
-        { _id: { $in: user.farms } },
-        { $pull: { managers: id, agents: id } }
-      );
-      await mongoose.model('Campaign').updateMany(
-        { _id: { $in: user.campaignsAssignees } },
-        { $pull: { managers: id, agents: id } }
-      );
-    } catch (cleanErr) {
-      console.error("Erreur lors du nettoyage des relations (delete):", cleanErr);
-    }
+    const archivedUser = await User.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          actif: false,
+          archivedAt: new Date(),
+          archivedBy: req.user?.userId || null,
+          archiveReason: typeof reason === "string" ? reason.trim() : null,
+        },
+      },
+      { new: true }
+    ).select("name email role actif archivedAt archivedBy archiveReason");
 
-    // 2. Supprimer l'utilisateur
-    await User.findByIdAndDelete(id);
+    await UserLifecycleEvent.create({
+      user: id,
+      action: "archived",
+      actor: req.user?.userId || null,
+      metadata: {
+        reason: typeof reason === "string" ? reason.trim() : null,
+      },
+    });
 
-    res.json({ message: "Utilisateur supprimé avec succès" });
+    return res.json({
+      message: "Utilisateur archivé avec succès",
+      user: archivedUser,
+    });
   } catch (err) {
     return next(err)
   }

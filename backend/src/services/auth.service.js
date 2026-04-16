@@ -19,7 +19,11 @@ export async function loginUser({ email, password }) {
   // DÉCLARATION AVANT UTILISATION
   const normalizedEmail = email.trim().toLowerCase();
 
-  const user = await User.findOne({ email: normalizedEmail, actif: true }).select("+passwordHash");
+  const user = await User.findOne({
+    email: normalizedEmail,
+    actif: true,
+    archivedAt: null,
+  }).select("+passwordHash");
 
   if (!user) {
     const err = new Error("Invalid credentials");

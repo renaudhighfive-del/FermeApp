@@ -17,6 +17,30 @@
       </button>
     </div>
 
+    <div class="flex items-center gap-2">
+      <button
+        @click="changeStatusFilter('actifs')"
+        class="px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors"
+        :class="statusFilter === 'actifs' ? 'bg-[var(--primary)] text-white' : 'bg-[var(--bg)] text-[var(--text)]'"
+      >
+        Actifs
+      </button>
+      <button
+        @click="changeStatusFilter('inactifs')"
+        class="px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors"
+        :class="statusFilter === 'inactifs' ? 'bg-[var(--primary)] text-white' : 'bg-[var(--bg)] text-[var(--text)]'"
+      >
+        Inactifs
+      </button>
+      <button
+        @click="changeStatusFilter('archives')"
+        class="px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors"
+        :class="statusFilter === 'archives' ? 'bg-[var(--primary)] text-white' : 'bg-[var(--bg)] text-[var(--text)]'"
+      >
+        Archivés
+      </button>
+    </div>
+
     <!-- Users Table -->
     <div class="table-container">
       <div class="overflow-x-auto">
@@ -48,10 +72,10 @@
               </td>
               <td class="hide-mobile">
                 <span
-                  :class="user.actif ? 'bg-[var(--success)]/10 text-[var(--success)]' : 'bg-[var(--danger)]/10 text-[var(--danger)]'"
+                  :class="user.archivedAt ? 'bg-slate-200 text-slate-700' : (user.actif ? 'bg-[var(--success)]/10 text-[var(--success)]' : 'bg-[var(--danger)]/10 text-[var(--danger)]')"
                   class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
                 >
-                  {{ user.actif ? 'Actif' : 'Inactif' }}
+                  {{ user.archivedAt ? 'Archivé' : (user.actif ? 'Actif' : 'Inactif') }}
                 </span>
               </td>
               <td class="text-right space-x-1 whitespace-nowrap">
@@ -61,10 +85,10 @@
                 <button @click="openEditModal(user)" class="p-2 text-[var(--primary)] hover:bg-[var(--bg)] rounded-lg transition-colors" title="Modifier">
                   <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 </button>
-                <button @click="deleteUser(user._id)" class="p-2 text-[var(--danger)] hover:bg-[var(--danger)]/10 rounded-lg transition-colors" title="Supprimer">
-                  <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
+                <button @click="archiveUser(user._id)" :disabled="!!user.archivedAt" class="p-2 text-[var(--danger)] hover:bg-[var(--danger)]/10 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed" title="Archiver">
+                  <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></svg>
                 </button>
-                <button @click="deactivateUser(user._id)" :class="user.actif ? 'text-[var(--warn)]' : 'text-[var(--success)]'" class="p-2 hover:bg-[var(--bg)] rounded-lg transition-colors" :title="user.actif ? 'Désactiver' : 'Activer'">
+                <button @click="deactivateUser(user._id)" :disabled="!!user.archivedAt" :class="user.actif ? 'text-[var(--warn)]' : 'text-[var(--success)]'" class="p-2 hover:bg-[var(--bg)] rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed" :title="user.actif ? 'Désactiver' : 'Activer'">
                   <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/></svg>
                 </button>
               </td>
@@ -86,7 +110,11 @@
           </button>
         </div>
         
-        <div v-if="selectedUser" class="space-y-6">
+        <div v-if="profileLoading" class="py-8 text-center text-[var(--soft)]">
+          Chargement du profil détaillé...
+        </div>
+
+        <div v-else-if="selectedUser" class="space-y-6">
           <div class="flex flex-col items-center mb-6">
             <div class="w-24 h-24 bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] rounded-full flex items-center justify-center text-3xl font-bold text-white mb-4 shadow-lg">
               {{ selectedUser.name.charAt(0).toUpperCase() }}
@@ -113,6 +141,27 @@
                 {{ selectedUser.role }}
               </span>
             </div>
+            <div v-if="selectedUser.stats" class="pt-2 border-t border-[var(--border)]">
+              <label class="block text-xs font-bold text-[var(--soft)] uppercase tracking-wider mb-3">Indicateurs</label>
+              <div class="grid grid-cols-2 gap-2">
+                <div class="p-2 bg-white rounded-lg text-xs text-[var(--soft)]">
+                  Fermes
+                  <div class="text-sm font-bold text-[var(--text)]">{{ selectedUser.stats.farmsAssignedCount }}</div>
+                </div>
+                <div class="p-2 bg-white rounded-lg text-xs text-[var(--soft)]">
+                  Campagnes
+                  <div class="text-sm font-bold text-[var(--text)]">{{ selectedUser.stats.campaignsAssignedCount }}</div>
+                </div>
+                <div class="p-2 bg-white rounded-lg text-xs text-[var(--soft)]">
+                  Campagnes actives
+                  <div class="text-sm font-bold text-[var(--text)]">{{ selectedUser.stats.activeAssignedCampaignsCount }}</div>
+                </div>
+                <div class="p-2 bg-white rounded-lg text-xs text-[var(--soft)]">
+                  Tâches assignées
+                  <div class="text-sm font-bold text-[var(--text)]">{{ selectedUser.stats.eventsAssignedCount }}</div>
+                </div>
+              </div>
+            </div>
             <div v-if="selectedUser.role === 'gerant' && selectedUser.campaignsAssignees?.length" class="pt-2 border-t border-[var(--border)]">
               <label class="block text-xs font-bold text-[var(--soft)] uppercase tracking-wider mb-3">Campagnes Assignées</label>
               <div class="space-y-2">
@@ -135,6 +184,18 @@
               <label class="block text-xs font-bold text-[var(--soft)] uppercase tracking-wider mb-3">Campagne de Travail</label>
               <div class="p-2 bg-white rounded-lg">
                 <span class="text-sm text-[var(--text)]">{{ getCampaignName(selectedUser.campaignsAssignees[0]) }}</span>
+              </div>
+            </div>
+            <div v-if="selectedUser.lifecycle?.length" class="pt-2 border-t border-[var(--border)]">
+              <label class="block text-xs font-bold text-[var(--soft)] uppercase tracking-wider mb-3">Historique RH récent</label>
+              <div class="space-y-2">
+                <div v-for="event in selectedUser.lifecycle" :key="event._id" class="p-2 bg-white rounded-lg">
+                  <div class="text-xs font-bold text-[var(--text)]">{{ event.action }}</div>
+                  <div class="text-[11px] text-[var(--soft)]">
+                    {{ new Date(event.createdAt).toLocaleString('fr-FR') }}
+                    · {{ event.actor?.name || 'Système' }}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -370,9 +431,11 @@ const showDetailsModal = ref(false)
 const showEditModal = ref(false)
 const selectedUser = ref(null)
 const editingUser = ref(null)
+const profileLoading = ref(false)
 const editTab = ref('info')
 const newPassword = ref('')
 const isSaving = ref(false)
+const statusFilter = ref('actifs')
 
 const newUser = ref({
   name: '',
@@ -385,11 +448,23 @@ const newUser = ref({
 
 const fetchUsers = async () => {
   try {
-    const response = await userService.getAll()
+    const query = {}
+    if (statusFilter.value === 'actifs') query.actif = true
+    if (statusFilter.value === 'inactifs') query.actif = false
+    if (statusFilter.value === 'archives') {
+      query.archived = true
+      query.includeArchived = true
+    }
+    const response = await userService.getAll(query)
     users.value = response.data.users
   } catch (error) {
     console.error('Error:', error)
   }
+}
+
+const changeStatusFilter = async (nextFilter) => {
+  statusFilter.value = nextFilter
+  await fetchUsers()
 }
 
 const fetchFarms = async () => {
@@ -402,9 +477,20 @@ const fetchFarms = async () => {
   }
 }
 
-const openDetailsModal = (user) => {
+const openDetailsModal = async (user) => {
   selectedUser.value = user
   showDetailsModal.value = true
+  profileLoading.value = true
+
+  try {
+    const response = await userService.getProfile(user._id)
+    selectedUser.value = response.data.user
+  } catch (error) {
+    console.error('Error fetching user profile:', error)
+    ui.error('Impossible de charger les détails complets')
+  } finally {
+    profileLoading.value = false
+  }
 }
 
 const openEditModal = (user) => {
@@ -470,22 +556,22 @@ const updateUser = async () => {
   }
 }
 
-const deleteUser = async (userId) => {
+const archiveUser = async (userId) => {
   const confirm = await ui.confirm({
-    title: 'Supprimer l\'utilisateur',
-    message: 'Êtes-vous sûr de vouloir supprimer cet utilisateur définitivement ? Cette action est irréversible.',
-    confirmText: 'Supprimer définitivement',
+    title: 'Archiver l\'utilisateur',
+    message: 'Le compte sera désactivé et conservé dans les archives. Continuer ?',
+    confirmText: 'Archiver',
     type: 'danger'
   })
 
   if (confirm) {
     try {
-      await userService.delete(userId)
+      await userService.archive(userId, 'Départ de l\'entreprise')
       await fetchUsers()
-      ui.success('Utilisateur supprimé avec succès')
+      ui.success('Utilisateur archivé avec succès')
     } catch (error) {
-      console.error('Error deleting user:', error)
-      ui.error('Erreur lors de la suppression')
+      console.error('Error archiving user:', error)
+      ui.error('Erreur lors de l\'archivage')
     }
   }
 }

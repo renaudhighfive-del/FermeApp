@@ -21,6 +21,32 @@ const stats = ref({
 
 const loading = ref(true)
 
+const dataHealthChecks = computed(() => {
+  const checks = []
+  const farms = admin.farms || []
+  const campaigns = admin.campaigns || []
+
+  if (farms.length === 0) {
+    checks.push({ level: 'warning', message: 'Aucune ferme active trouvée.' })
+  }
+
+  const campaignsWithoutFarm = campaigns.filter((c) => !c.farm)
+  if (campaignsWithoutFarm.length > 0) {
+    checks.push({ level: 'danger', message: `${campaignsWithoutFarm.length} campagne(s) sans ferme liée.` })
+  }
+
+  const activeCampaigns = campaigns.filter((c) => c.status === 'En cours')
+  if (activeCampaigns.length === 0) {
+    checks.push({ level: 'warning', message: 'Aucune campagne active en cours.' })
+  }
+
+  if (checks.length === 0) {
+    checks.push({ level: 'success', message: 'Aucune incohérence détectée sur les données principales.' })
+  }
+
+  return checks
+})
+
 // Date dynamique
 const dateAujourdhui = computed(() => {
   return new Date().toLocaleDateString('fr-FR', {
@@ -56,7 +82,8 @@ const fetchDashboardStats = async () => {
     await Promise.all([
       admin.fetchStats(),
       admin.fetchCampaigns(),
-      admin.fetchAlerts()
+      admin.fetchAlerts(),
+      admin.fetchFarms()
     ])
     
     if (admin.stats) {
@@ -260,6 +287,26 @@ onMounted(() => {
         </div>
         <div class="w-12 h-12 rounded-2xl bg-[var(--success)]/10 flex items-center justify-center text-[var(--success)]">
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 1 0 0 7h5a3.5 3.5 0 1 1 0 7H6"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-bold text-[var(--text)]">Santé des données</h3>
+      </div>
+      <div class="space-y-2">
+        <div
+          v-for="(check, index) in dataHealthChecks"
+          :key="index"
+          class="p-3 rounded-lg text-sm font-medium"
+          :class="check.level === 'danger'
+            ? 'bg-[var(--danger)]/10 text-[var(--danger)]'
+            : (check.level === 'warning'
+              ? 'bg-[var(--warn)]/10 text-[var(--warn)]'
+              : 'bg-[var(--success)]/10 text-[var(--success)]')"
+        >
+          {{ check.message }}
         </div>
       </div>
     </div>

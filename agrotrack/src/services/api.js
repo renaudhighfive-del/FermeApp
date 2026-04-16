@@ -10,9 +10,10 @@ export const authService = {
 export const userService = {
   getAll: (params) => axios.get("/users", { params }),
   getById: (id) => axios.get(`/users/${id}`),
+  getProfile: (id) => axios.get(`/users/${id}/profile`),
   create: (data) => axios.post("/users", data),
   update: (id, data) => axios.put(`/users/${id}`, data),
-  delete: (id) => axios.delete(`/users/${id}`),
+  archive: (id, reason) => axios.patch(`/users/${id}/archive`, { reason }),
   resetPassword: (id, password) => axios.patch(`/users/${id}/mot-de-passe`, { nouveauMotDePasse: password }),
   deactivateUser: (id) => axios.patch(`/users/${id}/desactiver`, {}),
 };
@@ -32,6 +33,8 @@ export const farmService = {
   getAll: (params) => axios.get("/farms", { params }),
   getById: (id) => axios.get(`/farms/${id}`),
   create: (data) => axios.post("/farms", data),
+  transfer: (id, data) => axios.post(`/farms/${id}/transfer`, data),
+  getTransferLogs: (params) => axios.get("/farms/transfer-logs", { params }),
   update: (id, data) => axios.put(`/farms/${id}`, data),
   delete: (id) => axios.delete(`/farms/${id}`),
 };

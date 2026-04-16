@@ -192,10 +192,10 @@ const seedDatabase = async () => {
     //     });
     //   }
 
-      console.log("✅ Animals created successfully (60 total)");
-    } catch (animalErr) {
-      console.error("❌ Error creating animals:", animalErr.message);
-    }
+    //   console.log("✅ Animals created successfully (60 total)");
+    // } catch (animalErr) {
+    //   console.error("❌ Error creating animals:", animalErr.message);
+    // }
     console.log("\n🎉 Seed completed! Database is ready.");
     console.log("📊 Login credentials:");
     console.log("   Admin: admin@fermeapp.com / Admin123!");

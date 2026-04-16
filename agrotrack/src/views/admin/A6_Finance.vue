@@ -97,45 +97,7 @@
         </div>
         
         <div class="h-64 relative">
-          <svg width="100%" height="100%" viewBox="0 0 600 200" preserveAspectRatio="none">
-            <g stroke="var(--border)" stroke-width="1" stroke-dasharray="4">
-              <line x1="0" y1="40" x2="600" y2="40" />
-              <line x1="0" y1="80" x2="600" y2="80" />
-              <line x1="0" y1="120" x2="600" y2="120" />
-              <line x1="0" y1="160" x2="600" y2="160" />
-            </g>
-            <template v-for="(month, index) in chartData" :key="index">
-              <!-- Expense bar -->
-              <rect 
-                :x="40 + (index * 45)" 
-                :y="160 - (month.expenses / 10000)" 
-                width="15" 
-                :height="month.expenses / 10000" 
-                fill="var(--primary)" 
-                rx="2"
-              />
-              <!-- Revenue bar -->
-              <rect 
-                :x="58 + (index * 45)" 
-                :y="160 - (month.revenue / 10000)" 
-                width="15" 
-                :height="month.revenue / 10000" 
-                fill="var(--success)" 
-                rx="2"
-              />
-              <!-- Month Label -->
-              <text 
-                :x="53 + (index * 45)" 
-                y="185" 
-                text-anchor="middle" 
-                font-size="10" 
-                fill="var(--soft)" 
-                font-weight="bold"
-              >
-                {{ month.label }}
-              </text>
-            </template>
-          </svg>
+          <Bar :data="financeChartData" :options="financeChartOptions" />
         </div>
       </div>
     </template>
@@ -144,8 +106,19 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { Bar } from 'vue-chartjs'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Tooltip,
+  Legend
+} from 'chart.js'
 import { useAdminStore } from '@/stores/admin'
 import { useUiStore } from '@/stores/ui'
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend)
 
 const admin = useAdminStore()
 const ui = useUiStore()
@@ -200,13 +173,44 @@ const chartData = computed(() => {
       
     last4Months.push({
       label: months[monthIndex],
-      revenue: revenue || 850000 + (Math.random() * 200000), // Fallback si aucune donnée
-      expenses: expenses || 600000 + (Math.random() * 150000) // Fallback si aucune donnée
+      revenue,
+      expenses
     })
   }
   
   return last4Months
 })
+
+const financeChartData = computed(() => ({
+  labels: chartData.value.map((m) => m.label),
+  datasets: [
+    {
+      label: 'Dépenses',
+      data: chartData.value.map((m) => m.expenses),
+      backgroundColor: '#3D2B1F'
+    },
+    {
+      label: 'Revenus',
+      data: chartData.value.map((m) => m.revenue),
+      backgroundColor: '#2D6A4F'
+    }
+  ]
+}))
+
+const financeChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { position: 'top' }
+  },
+  scales: {
+    y: {
+      ticks: {
+        callback: (value) => `${Math.round(value / 1000)}k`
+      }
+    }
+  }
+}
 
 // CSS Classes
 const getDeptClass = (type) => {

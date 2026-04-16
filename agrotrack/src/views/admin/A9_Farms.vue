@@ -140,6 +140,7 @@
               <td class="px-6 py-4 text-sm space-x-3">
                 <button @click="openDetailsModal(farm)" class="text-[var(--success)] hover:text-[var(--text)] font-medium transition-colors">Détails</button>
                 <button @click="openEditModal(farm)" class="text-[var(--primary)] hover:text-[var(--text)] font-medium transition-colors">Modifier</button>
+                <button @click="openTransferModal(farm)" class="text-[var(--warn)] hover:text-[var(--text)] font-medium transition-colors">Transférer</button>
                 <button @click="deleteFarm(farm._id)" class="text-[var(--danger)] hover:text-[var(--text)] font-medium transition-colors">Supprimer</button>
               </td>
             </tr>
@@ -147,6 +148,43 @@
               <td colspan="5" class="px-6 py-12 text-center text-[var(--soft)]">
                 Aucune ferme trouvée. Commencez par en créer une.
               </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-bold text-[var(--text)]">Journal des transferts</h3>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-[var(--bg)] border-b border-[var(--border)]">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-bold text-[var(--soft)] uppercase">Date</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-[var(--soft)] uppercase">Source</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-[var(--soft)] uppercase">Cible</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-[var(--soft)] uppercase">Mode</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-[var(--soft)] uppercase">Impact</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[var(--border)]">
+            <tr v-for="log in transferLogs" :key="log._id">
+              <td class="px-4 py-3 text-sm text-[var(--text)]">{{ new Date(log.createdAt).toLocaleString('fr-FR') }}</td>
+              <td class="px-4 py-3 text-sm text-[var(--text)]">{{ log.sourceFarm?.name || '-' }}</td>
+              <td class="px-4 py-3 text-sm text-[var(--text)]">{{ log.targetFarm?.name || '-' }}</td>
+              <td class="px-4 py-3">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider" :class="log.mode === 'execute' ? 'bg-[var(--success)]/10 text-[var(--success)]' : 'bg-[var(--warn)]/10 text-[var(--warn)]'">
+                  {{ log.mode }}
+                </span>
+              </td>
+              <td class="px-4 py-3 text-xs text-[var(--soft)]">
+                {{ log.impact?.campaigns || 0 }} camp. · {{ log.impact?.products || 0 }} prod. · {{ log.impact?.transactions || 0 }} trans.
+              </td>
+            </tr>
+            <tr v-if="transferLogs.length === 0">
+              <td colspan="5" class="px-4 py-6 text-center text-[var(--soft)]">Aucun transfert enregistré</td>
             </tr>
           </tbody>
         </table>
@@ -270,6 +308,60 @@
         </div>
       </div>
     </div>
+
+    <div v-if="showTransferModal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div class="bg-white rounded-lg shadow-lg max-w-2xl w-full overflow-y-auto max-h-[90vh]">
+        <div class="p-6 border-b border-[var(--border)] flex justify-between items-center">
+          <h2 class="text-xl font-bold text-[var(--text)]">Transfert d'urgence de ferme</h2>
+          <button @click="showTransferModal = false" class="text-[var(--soft)] hover:text-[var(--text)] text-2xl transition-colors">&times;</button>
+        </div>
+
+        <div class="p-6 space-y-4">
+          <div class="space-y-1">
+            <label class="text-sm font-bold text-[var(--text)]">Ferme source</label>
+            <select v-model="transferForm.sourceFarmId" class="w-full px-4 py-2.5 rounded-lg border border-[var(--border)]">
+              <option v-for="farm in admin.farms" :key="farm._id" :value="farm._id">{{ farm.name }}</option>
+            </select>
+          </div>
+
+          <div class="space-y-1">
+            <label class="text-sm font-bold text-[var(--text)]">Ferme cible</label>
+            <select v-model="transferForm.targetFarmId" class="w-full px-4 py-2.5 rounded-lg border border-[var(--border)]">
+              <option value="">Sélectionner une ferme cible</option>
+              <option v-for="farm in availableTargetFarms" :key="farm._id" :value="farm._id">{{ farm.name }}</option>
+            </select>
+          </div>
+
+          <div class="space-y-1">
+            <label class="text-sm font-bold text-[var(--text)]">Raison / Incident</label>
+            <textarea v-model="transferForm.reason" rows="2" class="w-full px-4 py-2.5 rounded-lg border border-[var(--border)]"></textarea>
+          </div>
+
+          <div v-if="transferPreview" class="p-4 bg-[var(--bg)] border border-[var(--border)] rounded-lg">
+            <div class="text-sm font-bold text-[var(--text)] mb-2">Impact prévu (simulation)</div>
+            <div class="text-xs text-[var(--soft)] space-y-1">
+              <div>Campagnes : {{ transferPreview.impact?.campaigns || 0 }}</div>
+              <div>Produits : {{ transferPreview.impact?.products || 0 }}</div>
+              <div>Transactions : {{ transferPreview.impact?.transactions || 0 }}</div>
+              <div>Ventes : {{ transferPreview.impact?.sales || 0 }}</div>
+              <div>Rapports : {{ transferPreview.impact?.reports || 0 }}</div>
+            </div>
+          </div>
+
+          <div class="pt-6 flex gap-3 border-t border-[var(--border)]">
+            <button type="button" @click="showTransferModal = false" class="flex-1 px-6 py-3 rounded-lg bg-[var(--bg)] text-[var(--text)] font-bold hover:bg-[var(--border)] transition-all">
+              Fermer
+            </button>
+            <button type="button" @click="previewTransfer" :disabled="isTransferLoading" class="flex-1 px-6 py-3 rounded-lg bg-[var(--warn)] text-white font-bold disabled:opacity-60">
+              {{ isTransferLoading ? 'Simulation...' : 'Simuler' }}
+            </button>
+            <button type="button" @click="executeTransfer" :disabled="isTransferLoading" class="flex-1 px-6 py-3 rounded-lg bg-[var(--danger)] text-white font-bold disabled:opacity-60">
+              {{ isTransferLoading ? 'Transfert...' : 'Exécuter' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -278,6 +370,7 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { useAdminStore } from '@/stores/admin'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
+import { farmService } from '@/services/api'
 import html2pdf from 'html2pdf.js'
 
 const admin = useAdminStore()
@@ -287,10 +380,19 @@ const ui = useUiStore()
 // State
 const showFormModal = ref(false)
 const showDetailsModal = ref(false)
+const showTransferModal = ref(false)
 const isEditing = ref(false)
 const isSubmitting = ref(false)
+const isTransferLoading = ref(false)
 const selectedFarm = ref(null)
 const isExportingPDF = ref(false)
+const transferLogs = ref([])
+const transferPreview = ref(null)
+const transferForm = reactive({
+  sourceFarmId: '',
+  targetFarmId: '',
+  reason: 'Incident opérationnel',
+})
 
 const form = reactive({
   name: '',
@@ -321,6 +423,10 @@ const productionTypesCount = computed(() => {
   return types.size
 })
 
+const availableTargetFarms = computed(() =>
+  (admin.farms || []).filter((farm) => farm._id !== transferForm.sourceFarmId)
+)
+
 // Methods
 const resetForm = () => {
   form.name = ''
@@ -350,6 +456,14 @@ const openEditModal = (farm) => {
 const openDetailsModal = (farm) => {
   selectedFarm.value = farm
   showDetailsModal.value = true
+}
+
+const openTransferModal = (farm) => {
+  transferForm.sourceFarmId = farm._id
+  transferForm.targetFarmId = ''
+  transferForm.reason = 'Incident opérationnel'
+  transferPreview.value = null
+  showTransferModal.value = true
 }
 
 const submitForm = async () => {
@@ -391,6 +505,74 @@ const deleteFarm = async (id) => {
       console.error('Erreur:', error)
       ui.error('Impossible de supprimer la ferme')
     }
+  }
+}
+
+const fetchTransferLogs = async () => {
+  try {
+    const response = await farmService.getTransferLogs({ limit: 10 })
+    transferLogs.value = response.data.logs || []
+  } catch (error) {
+    console.error('Erreur chargement historique transferts:', error)
+  }
+}
+
+const previewTransfer = async () => {
+  if (!transferForm.sourceFarmId || !transferForm.targetFarmId) {
+    ui.warning('Sélectionnez la ferme source et cible')
+    return
+  }
+
+  try {
+    isTransferLoading.value = true
+    const response = await farmService.transfer(transferForm.sourceFarmId, {
+      targetFarmId: transferForm.targetFarmId,
+      reason: transferForm.reason || 'Incident opérationnel',
+      mode: 'dry-run'
+    })
+    transferPreview.value = response.data
+    ui.success('Simulation du transfert terminée')
+    await fetchTransferLogs()
+  } catch (error) {
+    console.error('Erreur simulation transfert:', error)
+    ui.error(error.response?.data?.error || 'Impossible de simuler le transfert')
+  } finally {
+    isTransferLoading.value = false
+  }
+}
+
+const executeTransfer = async () => {
+  if (!transferForm.sourceFarmId || !transferForm.targetFarmId) {
+    ui.warning('Sélectionnez la ferme source et cible')
+    return
+  }
+
+  const confirm = await ui.confirm({
+    title: 'Confirmer le transfert',
+    message: 'Cette action va déplacer toutes les activités vers la ferme cible et désactiver la ferme source.',
+    confirmText: 'Transférer',
+    type: 'warning'
+  })
+
+  if (!confirm) return
+
+  try {
+    isTransferLoading.value = true
+    await farmService.transfer(transferForm.sourceFarmId, {
+      targetFarmId: transferForm.targetFarmId,
+      reason: transferForm.reason || 'Incident opérationnel',
+      mode: 'execute'
+    })
+
+    ui.success('Transfert effectué avec succès')
+    showTransferModal.value = false
+    transferPreview.value = null
+    await Promise.all([admin.fetchFarms(), fetchTransferLogs()])
+  } catch (error) {
+    console.error('Erreur transfert:', error)
+    ui.error(error.response?.data?.error || 'Impossible d\'effectuer le transfert')
+  } finally {
+    isTransferLoading.value = false
   }
 }
 
@@ -451,7 +633,7 @@ const exportToPDF = () => {
 }
 
 onMounted(async () => {
-  await admin.fetchFarms()
+  await Promise.all([admin.fetchFarms(), fetchTransferLogs()])
 })
 </script>
 
